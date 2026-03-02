@@ -1,26 +1,47 @@
 /**
- * Tela inicial - Dashboard Profissional
+ * Home Screen - Dashboard Premium
+ * Design limpo e profissional
  */
 
 import React from 'react';
-import { ScrollView, View, StyleSheet } from 'react-native';
+import { ScrollView, View, StyleSheet, Platform, TouchableOpacity } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 import { Text } from '../components/ui/Text';
-import { IconButton } from '../components/ui/Button';
-import { Card } from '../components/ui/Card';
 import { BalanceCard } from '../components/dashboard/BalanceCard';
 import { QuickStats } from '../components/dashboard/QuickStats';
 import { RecentTransactions, Transaction } from '../components/dashboard/RecentTransactions';
-import { PieChartSimple } from '../components/charts/PieChart';
+import { PieChart } from '../components/charts/PieChart';
 import { HorizontalBarChart } from '../components/charts/BarChart';
 import { BudgetProgressBar } from '../components/charts/ProgressBar';
 import { getCategoryById } from '../constants/categories';
 import { useTheme } from '../contexts/ThemeContext';
-import { spacing } from '../constants/spacing';
 
 interface HomeScreenProps {
   transactions: Transaction[];
   onSeeAllTransactions: () => void;
   onTransactionPress: (transaction: Transaction) => void;
+}
+
+// Ícone de sino
+function BellIcon({ size = 24, color = '#64748B' }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"
+        stroke={color}
+        strokeWidth={1.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M13.73 21a2 2 0 0 1-3.46 0"
+        stroke={color}
+        strokeWidth={1.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
 }
 
 function Header() {
@@ -31,14 +52,16 @@ function Header() {
   return (
     <View style={styles.header}>
       <View>
-        <Text preset="caption" color={theme.colors.textSecondary}>
-          {greeting}! 👋
+        <Text style={[styles.greeting, { color: theme.colors.textSecondary }]}>
+          {greeting}
         </Text>
-        <Text preset="h4" style={{ color: theme.colors.text }}>Contador de Bolso</Text>
+        <Text style={[styles.appName, { color: theme.colors.text }]}>
+          Contador de Bolso
+        </Text>
       </View>
-      <View style={styles.headerRight}>
-        <IconButton icon="🔔" onPress={() => {}} />
-      </View>
+      <TouchableOpacity style={[styles.bellBtn, { backgroundColor: theme.colors.backgroundSecondary }]}>
+        <BellIcon color={theme.colors.textSecondary} size={20} />
+      </TouchableOpacity>
     </View>
   );
 }
@@ -50,58 +73,39 @@ export function HomeScreen({
 }: HomeScreenProps) {
   const { theme } = useTheme();
 
-  // Calcular totais
-  const income = transactions
-    .filter(t => t.type === 'income')
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const expenses = transactions
-    .filter(t => t.type === 'expense')
-    .reduce((sum, t) => sum + t.amount, 0);
-
+  // Cálculos
+  const income = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+  const expenses = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
   const balance = income - expenses;
-
-  const biggestExpense = Math.max(
-    ...transactions.filter(t => t.type === 'expense').map(t => t.amount),
-    0
-  );
-
-  const daysInMonth = new Date().getDate();
-  const dailyAverage = daysInMonth > 0 ? expenses / daysInMonth : 0;
-
+  const biggestExpense = Math.max(...transactions.filter(t => t.type === 'expense').map(t => t.amount), 0);
+  const dailyAvg = new Date().getDate() > 0 ? expenses / new Date().getDate() : 0;
   const monthlyBudget = 5000;
   const budgetUsed = monthlyBudget > 0 ? (expenses / monthlyBudget) * 100 : 0;
 
-  const currentMonth = new Date().toLocaleDateString('pt-BR', {
-    month: 'long',
-    year: 'numeric',
-  });
+  const currentMonth = new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
 
-  // Agrupar gastos por categoria
+  // Dados para gráfico de pizza
   const expensesByCategory = transactions
     .filter(t => t.type === 'expense')
     .reduce((acc, t) => {
-      const catId = t.categoryId;
-      acc[catId] = (acc[catId] || 0) + t.amount;
+      acc[t.categoryId] = (acc[t.categoryId] || 0) + t.amount;
       return acc;
     }, {} as Record<string, number>);
 
-  // Preparar dados para o gráfico de pizza
   const pieData = Object.entries(expensesByCategory)
     .map(([catId, value]) => {
-      const category = getCategoryById(catId);
+      const cat = getCategoryById(catId);
       return {
         id: catId,
-        label: category?.name || 'Outros',
+        label: cat?.name || 'Outros',
         value,
-        color: category?.color || theme.colors.textTertiary,
-        icon: category?.icon || '📦',
+        color: cat?.color || '#94A3B8',
       };
     })
     .sort((a, b) => b.value - a.value)
     .slice(0, 5);
 
-  // Dados simulados para evolução mensal (últimos 6 meses)
+  // Dados para evolução mensal
   const monthlyData = [
     { label: 'Out', value: 3200, color: theme.colors.primaryLight },
     { label: 'Nov', value: 2800, color: theme.colors.primaryLight },
@@ -111,9 +115,7 @@ export function HomeScreen({
     { label: 'Mar', value: expenses, color: theme.colors.primary },
   ];
 
-  const sortedTransactions = [...transactions].sort(
-    (a, b) => b.date.getTime() - a.date.getTime()
-  );
+  const sortedTransactions = [...transactions].sort((a, b) => b.date.getTime() - a.date.getTime());
 
   return (
     <ScrollView
@@ -123,7 +125,6 @@ export function HomeScreen({
     >
       <Header />
 
-      {/* Card de Saldo Principal */}
       <BalanceCard
         balance={balance}
         income={income}
@@ -131,58 +132,46 @@ export function HomeScreen({
         monthName={currentMonth.charAt(0).toUpperCase() + currentMonth.slice(1)}
       />
 
-      {/* Estatísticas Rápidas */}
       <QuickStats
         biggestExpense={biggestExpense}
-        dailyAverage={dailyAverage}
+        dailyAverage={dailyAvg}
         budgetUsed={budgetUsed}
       />
 
-      {/* Progresso do Orçamento */}
       <BudgetProgressBar
         current={expenses}
         total={monthlyBudget}
         title="Orçamento do Mês"
       />
 
-      {/* Gráfico de Gastos por Categoria */}
-      {pieData.length > 0 && (
-        <PieChartSimple
-          data={pieData}
-          title="Gastos por Categoria"
-        />
-      )}
+      {pieData.length > 0 && <PieChart data={pieData} title="Gastos por Categoria" />}
 
-      {/* Evolução Mensal */}
-      <HorizontalBarChart
-        data={monthlyData}
-        title="Evolução dos Gastos"
-      />
+      <HorizontalBarChart data={monthlyData} title="Evolução dos Gastos" />
 
-      {/* Insights */}
-      <Card variant="outlined" style={{ ...styles.insightsCard, backgroundColor: theme.colors.card, borderColor: theme.colors.border }}>
+      {/* Insight Card */}
+      <View style={[styles.insightCard, { backgroundColor: theme.colors.card }]}>
         <View style={styles.insightHeader}>
-          <Text style={styles.insightIcon}>💡</Text>
-          <Text preset="label" style={{ color: theme.colors.text }}>Dica do mês</Text>
+          <View style={[styles.insightIcon, { backgroundColor: theme.colors.primaryLight + '20' }]}>
+            <Text style={{ fontSize: 16 }}>💡</Text>
+          </View>
+          <Text style={[styles.insightTitle, { color: theme.colors.text }]}>Dica</Text>
         </View>
-        <Text preset="bodySmall" color={theme.colors.textSecondary}>
+        <Text style={[styles.insightText, { color: theme.colors.textSecondary }]}>
           {budgetUsed > 80
-            ? 'Atenção! Você já usou mais de 80% do orçamento. Tente reduzir os gastos nos próximos dias.'
+            ? 'Você já usou mais de 80% do orçamento. Reduza os gastos.'
             : budgetUsed > 50
-            ? 'Você está na metade do orçamento. Continue assim para fechar o mês bem!'
-            : 'Ótimo trabalho! Seus gastos estão controlados este mês. Continue assim!'
-          }
+            ? 'Metade do orçamento usado. Continue assim!'
+            : 'Seus gastos estão controlados este mês.'}
         </Text>
-      </Card>
+      </View>
 
-      {/* Transações Recentes */}
       <RecentTransactions
         transactions={sortedTransactions.slice(0, 5)}
         onSeeAll={onSeeAllTransactions}
         onTransactionPress={onTransactionPress}
       />
 
-      <View style={styles.spacer} />
+      <View style={{ height: 24 }} />
     </ScrollView>
   );
 }
@@ -192,33 +181,61 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    paddingBottom: spacing[4],
+    paddingBottom: 16,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing[4],
-    paddingVertical: spacing[3],
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 4,
   },
-  headerRight: {
-    flexDirection: 'row',
-    gap: spacing[1],
+  greeting: {
+    fontSize: 13,
+    fontWeight: '400',
   },
-  insightsCard: {
-    marginHorizontal: spacing[4],
-    marginTop: spacing[4],
+  appName: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginTop: 2,
+  },
+  bellBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  insightCard: {
+    marginHorizontal: 20,
+    marginTop: 16,
+    borderRadius: 16,
+    padding: 16,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8 },
+      android: { elevation: 2 },
+    }),
   },
   insightHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing[2],
-    marginBottom: spacing[2],
+    marginBottom: 10,
   },
   insightIcon: {
-    fontSize: 20,
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
   },
-  spacer: {
-    height: spacing[4],
+  insightTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  insightText: {
+    fontSize: 13,
+    lineHeight: 20,
   },
 });

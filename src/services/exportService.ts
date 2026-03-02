@@ -4,8 +4,15 @@
  */
 
 import { Platform, Share, Alert } from 'react-native';
-import * as FileSystem from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
+
+// Importação condicional para evitar problemas na web
+let FileSystem: any = null;
+let Sharing: any = null;
+
+if (Platform.OS !== 'web') {
+  FileSystem = require('expo-file-system');
+  Sharing = require('expo-sharing');
+}
 
 interface Transaction {
   id: string;
@@ -83,27 +90,27 @@ export function generateSummary(
        CONTADOR DE BOLSO - RELATÓRIO
 ══════════════════════════════════════
 
-📅 Período: ${transactions.length > 0
+Período: ${transactions.length > 0
     ? `${transactions[transactions.length - 1].date.toLocaleDateString('pt-BR')} a ${transactions[0].date.toLocaleDateString('pt-BR')}`
     : 'Sem dados'}
 
-💰 RESUMO FINANCEIRO
+RESUMO FINANCEIRO
 ────────────────────
   Receitas:  R$ ${totalIncome.toFixed(2).replace('.', ',')}
   Despesas:  R$ ${totalExpense.toFixed(2).replace('.', ',')}
   ─────────────────────
   Saldo:     R$ ${balance.toFixed(2).replace('.', ',')}
 
-📊 GASTOS POR CATEGORIA
+GASTOS POR CATEGORIA
 ────────────────────
 ${sortedCategories.map(([cat, value]) => {
-    const percent = ((value / totalExpense) * 100).toFixed(1);
+    const percent = totalExpense > 0 ? ((value / totalExpense) * 100).toFixed(1) : '0';
     return `  ${cat}: R$ ${value.toFixed(2).replace('.', ',')} (${percent}%)`;
   }).join('\n')}
 
-📋 Total de transações: ${transactions.length}
-   ├─ Receitas: ${transactions.filter(t => t.type === 'income').length}
-   └─ Despesas: ${transactions.filter(t => t.type === 'expense').length}
+Total de transações: ${transactions.length}
+   - Receitas: ${transactions.filter(t => t.type === 'income').length}
+   - Despesas: ${transactions.filter(t => t.type === 'expense').length}
 
 ══════════════════════════════════════
   Exportado em ${new Date().toLocaleString('pt-BR')}
@@ -151,7 +158,6 @@ export async function exportToCSV(
     // Nome do arquivo
     const date = new Date().toISOString().split('T')[0];
     const csvFileName = `contador-de-bolso-${date}.csv`;
-    const summaryFileName = `contador-de-bolso-resumo-${date}.txt`;
 
     // Verificar se estamos na web
     if (Platform.OS === 'web') {
@@ -160,36 +166,32 @@ export async function exportToCSV(
       return true;
     }
 
-    // No mobile, salvar e compartilhar
-    const csvPath = `${FileSystem.documentDirectory}${csvFileName}`;
-    const summaryPath = `${FileSystem.documentDirectory}${summaryFileName}`;
+    // No mobile, usar a nova API do expo-file-system
+    if (FileSystem && Sharing) {
+      const { File, Paths } = FileSystem;
 
-    await FileSystem.writeAsStringAsync(csvPath, csvContent, {
-      encoding: FileSystem.EncodingType.UTF8,
-    });
+      const csvFile = new File(Paths.document, csvFileName);
+      csvFile.write(csvContent);
 
-    await FileSystem.writeAsStringAsync(summaryPath, summary, {
-      encoding: FileSystem.EncodingType.UTF8,
-    });
+      // Verificar se pode compartilhar
+      const canShare = await Sharing.isAvailableAsync();
 
-    // Verificar se pode compartilhar
-    const canShare = await Sharing.isAvailableAsync();
-
-    if (canShare) {
-      await Sharing.shareAsync(csvPath, {
-        mimeType: 'text/csv',
-        dialogTitle: 'Exportar transações',
-        UTI: 'public.comma-separated-values-text',
-      });
-      return true;
-    } else {
-      // Fallback para Share nativo
-      await Share.share({
-        message: summary,
-        title: 'Contador de Bolso - Relatório',
-      });
-      return true;
+      if (canShare) {
+        await Sharing.shareAsync(csvFile.uri, {
+          mimeType: 'text/csv',
+          dialogTitle: 'Exportar transações',
+          UTI: 'public.comma-separated-values-text',
+        });
+        return true;
+      }
     }
+
+    // Fallback para Share nativo
+    await Share.share({
+      message: summary,
+      title: 'Contador de Bolso - Relatório',
+    });
+    return true;
   } catch (error) {
     console.error('Erro ao exportar:', error);
     Alert.alert(
@@ -204,6 +206,8 @@ export async function exportToCSV(
  * Download de arquivo na web
  */
 function downloadFile(content: string, filename: string, mimeType: string) {
+  if (typeof document === 'undefined') return;
+
   const blob = new Blob([content], { type: mimeType });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');

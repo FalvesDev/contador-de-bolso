@@ -1,21 +1,20 @@
 /**
- * Gráfico de Pizza - Gastos por Categoria
- * Implementação com SVG puro (sem dependências extras)
+ * Gráfico de Pizza - Design Premium
+ * Visual limpo e profissional
  */
 
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
+import Svg, { Path, Circle, G, Text as SvgText } from 'react-native-svg';
 import { Text } from '../ui/Text';
-import { Card } from '../ui/Card';
 import { useTheme } from '../../contexts/ThemeContext';
-import { spacing, borderRadius } from '../../constants/spacing';
 
 interface PieChartData {
   id: string;
   label: string;
   value: number;
   color: string;
-  icon: string;
+  icon?: string;
 }
 
 interface PieChartProps {
@@ -24,221 +23,252 @@ interface PieChartProps {
   size?: number;
 }
 
-export function PieChart({ data, title = 'Gastos por Categoria', size = 160 }: PieChartProps) {
+function polarToCartesian(cx: number, cy: number, r: number, angle: number) {
+  const rad = ((angle - 90) * Math.PI) / 180;
+  return {
+    x: cx + r * Math.cos(rad),
+    y: cy + r * Math.sin(rad),
+  };
+}
+
+function describeArc(cx: number, cy: number, r: number, startAngle: number, endAngle: number) {
+  const start = polarToCartesian(cx, cy, r, endAngle);
+  const end = polarToCartesian(cx, cy, r, startAngle);
+  const largeArc = endAngle - startAngle > 180 ? 1 : 0;
+  return `M ${cx} ${cy} L ${start.x} ${start.y} A ${r} ${r} 0 ${largeArc} 0 ${end.x} ${end.y} Z`;
+}
+
+export function PieChart({ data, title = 'Gastos por Categoria', size = 140 }: PieChartProps) {
   const { theme } = useTheme();
   const total = data.reduce((sum, item) => sum + item.value, 0);
 
-  // Calcular ângulos para cada fatia
+  if (data.length === 0 || total === 0) {
+    return (
+      <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
+        <Text style={[styles.title, { color: theme.colors.text }]}>{title}</Text>
+        <View style={styles.empty}>
+          <Text style={{ color: theme.colors.textSecondary, fontSize: 14 }}>
+            Sem dados
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
   let currentAngle = 0;
-  const slices = data.map(item => {
-    const percentage = total > 0 ? (item.value / total) * 100 : 0;
-    const angle = (percentage / 100) * 360;
-    const slice = {
-      ...item,
-      percentage,
-      startAngle: currentAngle,
-      endAngle: currentAngle + angle,
-    };
+  const slices = data.map((item) => {
+    const pct = (item.value / total) * 100;
+    const angle = (pct / 100) * 360;
+    const slice = { ...item, pct, start: currentAngle, end: currentAngle + angle };
     currentAngle += angle;
     return slice;
   });
 
-  // Função para converter ângulo em coordenadas
-  const polarToCartesian = (cx: number, cy: number, r: number, angle: number) => {
-    const rad = ((angle - 90) * Math.PI) / 180;
-    return {
-      x: cx + r * Math.cos(rad),
-      y: cy + r * Math.sin(rad),
-    };
-  };
-
-  // Gerar path para cada fatia
-  const generateArcPath = (
-    cx: number,
-    cy: number,
-    r: number,
-    startAngle: number,
-    endAngle: number
-  ) => {
-    const start = polarToCartesian(cx, cy, r, endAngle);
-    const end = polarToCartesian(cx, cy, r, startAngle);
-    const largeArc = endAngle - startAngle > 180 ? 1 : 0;
-
-    return [
-      `M ${cx} ${cy}`,
-      `L ${start.x} ${start.y}`,
-      `A ${r} ${r} 0 ${largeArc} 0 ${end.x} ${end.y}`,
-      'Z',
-    ].join(' ');
-  };
-
   const cx = size / 2;
   const cy = size / 2;
-  const radius = size / 2 - 10;
+  const outerR = size / 2 - 4;
+  const innerR = outerR * 0.55;
 
   return (
-    <Card variant="elevated" style={{ ...styles.container, backgroundColor: theme.colors.card }}>
-      <Text preset="label" color={theme.colors.textSecondary} style={styles.title}>
-        {title}
-      </Text>
+    <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
+      <Text style={[styles.title, { color: theme.colors.text }]}>{title}</Text>
 
-      <View style={styles.chartContainer}>
-        {/* SVG do gráfico */}
-        <View style={[styles.chart, { width: size, height: size }]}>
-          <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-            {slices.map((slice) => (
-              <path
-                key={slice.id}
-                d={generateArcPath(cx, cy, radius, slice.startAngle, slice.endAngle)}
-                fill={slice.color}
-                stroke={theme.colors.card}
-                strokeWidth={2}
-              />
-            ))}
-            {/* Círculo central */}
-            <circle cx={cx} cy={cy} r={radius * 0.5} fill={theme.colors.card} />
-          </svg>
-
-          {/* Valor total no centro */}
-          <View style={styles.centerLabel}>
-            <Text preset="caption" color={theme.colors.textSecondary}>
+      <View style={styles.row}>
+        <View style={styles.chartWrap}>
+          <Svg width={size} height={size}>
+            <G>
+              {slices.map((s) => {
+                if (s.pct < 0.5) return null;
+                const path = describeArc(cx, cy, outerR, s.start + 0.5, s.end - 0.5);
+                return (
+                  <Path
+                    key={s.id}
+                    d={path}
+                    fill={s.color}
+                    stroke={theme.colors.card}
+                    strokeWidth={2}
+                  />
+                );
+              })}
+            </G>
+            <Circle cx={cx} cy={cy} r={innerR} fill={theme.colors.card} />
+            <SvgText
+              x={cx}
+              y={cy - 4}
+              textAnchor="middle"
+              fill={theme.colors.textSecondary}
+              fontSize={10}
+            >
               Total
-            </Text>
-            <Text preset="label" color={theme.colors.text}>
-              R$ {total.toFixed(0)}
-            </Text>
-          </View>
+            </SvgText>
+            <SvgText
+              x={cx}
+              y={cy + 12}
+              textAnchor="middle"
+              fill={theme.colors.text}
+              fontSize={13}
+              fontWeight="600"
+            >
+              R$ {(total / 1000).toFixed(1)}k
+            </SvgText>
+          </Svg>
         </View>
 
-        {/* Legenda */}
         <View style={styles.legend}>
-          {slices.slice(0, 5).map(slice => (
-            <View key={slice.id} style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: slice.color }]} />
-              <View style={styles.legendText}>
-                <Text preset="caption" numberOfLines={1} style={{ color: theme.colors.text }}>
-                  {slice.icon} {slice.label}
-                </Text>
-                <Text preset="caption" color={theme.colors.textSecondary}>
-                  {slice.percentage.toFixed(0)}%
-                </Text>
-              </View>
+          {slices.slice(0, 4).map((s) => (
+            <View key={s.id} style={styles.legendRow}>
+              <View style={[styles.dot, { backgroundColor: s.color }]} />
+              <Text style={[styles.legendLabel, { color: theme.colors.text }]} numberOfLines={1}>
+                {s.label}
+              </Text>
+              <Text style={[styles.legendPct, { color: theme.colors.textSecondary }]}>
+                {s.pct.toFixed(0)}%
+              </Text>
             </View>
           ))}
         </View>
       </View>
-    </Card>
+    </View>
   );
 }
 
-// Versão simplificada para mobile (sem SVG)
+// Versão simplificada com barras
 export function PieChartSimple({ data, title = 'Gastos por Categoria' }: PieChartProps) {
   const { theme } = useTheme();
   const total = data.reduce((sum, item) => sum + item.value, 0);
+  const sorted = [...data].sort((a, b) => b.value - a.value).slice(0, 5);
 
-  const sortedData = [...data].sort((a, b) => b.value - a.value).slice(0, 5);
+  if (sorted.length === 0 || total === 0) {
+    return (
+      <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
+        <Text style={[styles.title, { color: theme.colors.text }]}>{title}</Text>
+        <View style={styles.empty}>
+          <Text style={{ color: theme.colors.textSecondary }}>Sem dados</Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
-    <Card variant="elevated" style={{ ...styles.container, backgroundColor: theme.colors.card }}>
-      <Text preset="label" color={theme.colors.textSecondary} style={styles.title}>
-        {title}
-      </Text>
+    <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
+      <Text style={[styles.title, { color: theme.colors.text }]}>{title}</Text>
 
-      {sortedData.map((item) => {
-        const percentage = total > 0 ? (item.value / total) * 100 : 0;
-
+      {sorted.map((item) => {
+        const pct = (item.value / total) * 100;
         return (
-          <View key={item.id} style={styles.barItem}>
+          <View key={item.id} style={styles.barRow}>
             <View style={styles.barHeader}>
-              <View style={styles.barLabel}>
-                <Text style={{ fontSize: 16 }}>{item.icon}</Text>
-                <Text preset="bodySmall" numberOfLines={1} style={{ color: theme.colors.text }}>
+              <View style={styles.barLeft}>
+                <View style={[styles.dot, { backgroundColor: item.color }]} />
+                <Text style={[styles.barLabel, { color: theme.colors.text }]} numberOfLines={1}>
                   {item.label}
                 </Text>
               </View>
-              <Text preset="caption" color={theme.colors.textSecondary}>
-                R$ {item.value.toFixed(0)} ({percentage.toFixed(0)}%)
+              <Text style={[styles.barValue, { color: theme.colors.textSecondary }]}>
+                R$ {item.value.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}
               </Text>
             </View>
             <View style={[styles.barTrack, { backgroundColor: theme.colors.backgroundTertiary }]}>
-              <View
-                style={[
-                  styles.barFill,
-                  { width: `${percentage}%`, backgroundColor: item.color },
-                ]}
-              />
+              <View style={[styles.barFill, { width: `${pct}%`, backgroundColor: item.color }]} />
             </View>
           </View>
         );
       })}
-    </Card>
+
+      <View style={[styles.totalRow, { borderTopColor: theme.colors.border }]}>
+        <Text style={{ color: theme.colors.textSecondary, fontSize: 13 }}>Total</Text>
+        <Text style={{ color: theme.colors.text, fontSize: 15, fontWeight: '600' }}>
+          R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+        </Text>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    marginHorizontal: spacing[4],
-    marginTop: spacing[4],
+  card: {
+    marginHorizontal: 20,
+    marginTop: 16,
+    borderRadius: 16,
+    padding: 20,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8 },
+      android: { elevation: 2 },
+    }),
   },
   title: {
-    marginBottom: spacing[3],
+    fontSize: 15,
+    fontWeight: '600',
+    marginBottom: 16,
   },
-  chartContainer: {
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  chart: {
-    position: 'relative',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  centerLabel: {
-    position: 'absolute',
+  chartWrap: {
     alignItems: 'center',
   },
   legend: {
     flex: 1,
-    marginLeft: spacing[4],
+    marginLeft: 20,
   },
-  legendItem: {
+  legendRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing[2],
+    marginBottom: 10,
   },
-  legendDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginRight: spacing[2],
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 8,
   },
-  legendText: {
+  legendLabel: {
     flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    fontSize: 13,
   },
-  // Estilos para versão simplificada
-  barItem: {
-    marginBottom: spacing[3],
+  legendPct: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  empty: {
+    alignItems: 'center',
+    paddingVertical: 32,
+  },
+  barRow: {
+    marginBottom: 14,
   },
   barHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: spacing[1],
+    marginBottom: 6,
   },
-  barLabel: {
+  barLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing[2],
     flex: 1,
   },
+  barLabel: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  barValue: {
+    fontSize: 13,
+  },
   barTrack: {
-    height: 8,
-    borderRadius: borderRadius.full,
+    height: 6,
+    borderRadius: 3,
     overflow: 'hidden',
   },
   barFill: {
     height: '100%',
-    borderRadius: borderRadius.full,
+    borderRadius: 3,
+  },
+  totalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
   },
 });

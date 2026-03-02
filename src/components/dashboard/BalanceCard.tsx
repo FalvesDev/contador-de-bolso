@@ -1,23 +1,48 @@
 /**
- * Card principal do Dashboard mostrando o saldo do mês
+ * Card de Saldo Principal - Design Premium Fintech
+ * Visual limpo e sofisticado inspirado em Nubank/Inter
  */
 
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import { Text, MoneyText } from '../ui/Text';
-import { Card } from '../ui/Card';
+import React, { useState } from 'react';
+import { View, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import Svg, { Path, Circle } from 'react-native-svg';
+import { Text } from '../ui/Text';
 import { useTheme } from '../../contexts/ThemeContext';
-import { spacing } from '../../constants/spacing';
 
 interface BalanceCardProps {
-  /** Saldo atual (receitas - despesas) */
   balance: number;
-  /** Total de receitas do mês */
   income: number;
-  /** Total de despesas do mês */
   expenses: number;
-  /** Nome do mês atual */
   monthName?: string;
+}
+
+// Ícone de olho minimalista
+function EyeIcon({ size = 22, color = '#FFFFFF', isHidden = false }) {
+  if (isHidden) {
+    return (
+      <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+        <Path
+          d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"
+          stroke={color}
+          strokeWidth={1.5}
+          strokeLinecap="round"
+          strokeOpacity={0.5}
+        />
+        <Path d="M2 2l20 20" stroke={color} strokeWidth={1.5} strokeLinecap="round" />
+      </Svg>
+    );
+  }
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"
+        stroke={color}
+        strokeWidth={1.5}
+        strokeLinecap="round"
+      />
+      <Circle cx="12" cy="12" r="3" stroke={color} strokeWidth={1.5} />
+    </Svg>
+  );
 }
 
 export function BalanceCard({
@@ -27,95 +52,122 @@ export function BalanceCard({
   monthName = 'Este mês',
 }: BalanceCardProps) {
   const { theme } = useTheme();
+  const [hideValues, setHideValues] = useState(false);
+
+  const formatMoney = (value: number) => {
+    return value.toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    });
+  };
 
   return (
-    <Card
-      variant="filled"
-      backgroundColor={theme.colors.primary}
-      padding="lg"
-      rounded="xl"
-      style={styles.container}
-    >
-      {/* Header */}
-      <Text preset="label" color={theme.colors.textInverse} style={[styles.label, { opacity: 0.8 }]}>
-        {monthName}
-      </Text>
-
-      {/* Saldo Principal */}
-      <Text preset="caption" color={theme.colors.textInverse} style={[styles.balanceLabel, { opacity: 0.7 }]}>
-        Saldo
-      </Text>
-      <MoneyText
-        value={balance}
-        type="neutral"
-        size="large"
-        color={theme.colors.textInverse}
-        style={styles.balanceValue}
-      />
-
-      {/* Receitas e Despesas */}
-      <View style={styles.row}>
-        {/* Receitas */}
-        <View style={styles.statItem}>
-          <View style={styles.statHeader}>
-            <Text style={[styles.statIcon, { color: theme.colors.textInverse }]}>↑</Text>
-            <Text preset="caption" color={theme.colors.textInverse} style={{ opacity: 0.7 }}>
-              Receitas
-            </Text>
-          </View>
-          <MoneyText
-            value={income}
-            type="neutral"
-            size="small"
-            color={theme.colors.successLight}
-          />
+    <View style={styles.wrapper}>
+      <View style={[styles.card, { backgroundColor: theme.colors.primary }]}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.monthLabel}>{monthName}</Text>
+          <TouchableOpacity
+            onPress={() => setHideValues(!hideValues)}
+            style={styles.eyeBtn}
+            activeOpacity={0.7}
+          >
+            <EyeIcon isHidden={hideValues} />
+          </TouchableOpacity>
         </View>
 
-        {/* Separador */}
-        <View style={styles.separator} />
+        {/* Saldo */}
+        <View style={styles.balanceSection}>
+          <Text style={styles.balanceTitle}>Saldo</Text>
+          <Text style={styles.balanceValue}>
+            {hideValues ? '••••••' : formatMoney(balance)}
+          </Text>
+        </View>
 
-        {/* Despesas */}
-        <View style={styles.statItem}>
-          <View style={styles.statHeader}>
-            <Text style={[styles.statIcon, { color: theme.colors.textInverse }]}>↓</Text>
-            <Text preset="caption" color={theme.colors.textInverse} style={{ opacity: 0.7 }}>
-              Despesas
+        {/* Stats */}
+        <View style={styles.statsContainer}>
+          <View style={styles.statItem}>
+            <View style={styles.statHeader}>
+              <View style={[styles.indicator, styles.incomeIndicator]} />
+              <Text style={styles.statLabel}>Receitas</Text>
+            </View>
+            <Text style={styles.statValue}>
+              {hideValues ? '••••' : formatMoney(income)}
             </Text>
           </View>
-          <MoneyText
-            value={expenses}
-            type="neutral"
-            size="small"
-            color={theme.colors.dangerLight}
-          />
+
+          <View style={styles.divider} />
+
+          <View style={styles.statItem}>
+            <View style={styles.statHeader}>
+              <View style={[styles.indicator, styles.expenseIndicator]} />
+              <Text style={styles.statLabel}>Despesas</Text>
+            </View>
+            <Text style={styles.statValue}>
+              {hideValues ? '••••' : formatMoney(expenses)}
+            </Text>
+          </View>
         </View>
       </View>
-    </Card>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    marginHorizontal: spacing[4],
-    marginTop: spacing[4],
+  wrapper: {
+    paddingHorizontal: 20,
+    marginTop: 16,
   },
-  label: {
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: spacing[2],
+  card: {
+    borderRadius: 20,
+    padding: 24,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.15,
+        shadowRadius: 24,
+      },
+      android: {
+        elevation: 12,
+      },
+    }),
   },
-  balanceLabel: {
-    marginBottom: spacing[1],
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  monthLabel: {
+    color: 'rgba(255,255,255,0.8)',
+    fontSize: 14,
+    fontWeight: '500',
+    textTransform: 'capitalize',
+  },
+  eyeBtn: {
+    padding: 4,
+  },
+  balanceSection: {
+    marginBottom: 28,
+  },
+  balanceTitle: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 14,
+    fontWeight: '400',
+    marginBottom: 4,
   },
   balanceValue: {
-    marginBottom: spacing[4],
+    color: '#FFFFFF',
+    fontSize: 34,
+    fontWeight: '700',
+    letterSpacing: -0.5,
   },
-  row: {
+  statsContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 12,
-    padding: spacing[3],
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 14,
+    padding: 16,
   },
   statItem: {
     flex: 1,
@@ -123,16 +175,34 @@ const styles = StyleSheet.create({
   statHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing[1],
+    marginBottom: 6,
   },
-  statIcon: {
-    fontSize: 14,
-    marginRight: spacing[1],
+  indicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 8,
   },
-  separator: {
+  incomeIndicator: {
+    backgroundColor: '#4ADE80',
+  },
+  expenseIndicator: {
+    backgroundColor: '#F87171',
+  },
+  statLabel: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  statValue: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 16,
+  },
+  divider: {
     width: 1,
-    height: 40,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    marginHorizontal: spacing[3],
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    marginHorizontal: 16,
   },
 });

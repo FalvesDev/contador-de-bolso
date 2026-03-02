@@ -1614,6 +1614,299 @@ const handleImportOFX = async (fileUri: string) => {
 
 ---
 
+## Funcionalidades Avançadas
+
+### Gastos Parcelados (IMPORTANTE)
+
+O sistema suporta gastos parcelados (cartão de crédito, financiamentos, etc.):
+
+#### Modelo de Dados
+```typescript
+interface Transaction {
+  id: string;
+  // ... campos existentes
+
+  // Campos de parcelamento
+  isInstallment: boolean;           // É parcelado?
+  installmentTotal: number;         // Total de parcelas (ex: 12)
+  installmentCurrent: number;       // Parcela atual (ex: 3)
+  installmentGroupId: string;       // ID que agrupa todas as parcelas
+  originalAmount: number;           // Valor total da compra
+  installmentAmount: number;        // Valor de cada parcela
+}
+```
+
+#### SQL Adicional
+```sql
+-- Adicionar campos de parcelamento à tabela transactions
+ALTER TABLE transactions ADD COLUMN is_installment BOOLEAN DEFAULT FALSE;
+ALTER TABLE transactions ADD COLUMN installment_total INTEGER;
+ALTER TABLE transactions ADD COLUMN installment_current INTEGER;
+ALTER TABLE transactions ADD COLUMN installment_group_id UUID;
+ALTER TABLE transactions ADD COLUMN original_amount DECIMAL(12, 2);
+
+-- Índice para buscar parcelas
+CREATE INDEX idx_transactions_installment_group ON transactions(installment_group_id);
+```
+
+#### UI de Parcelamento
+```
+┌─────────────────────────────────────┐
+│  Nova Transação                     │
+├─────────────────────────────────────┤
+│                                     │
+│  Valor Total: R$ 1.200,00           │
+│                                     │
+│  ┌──────────────────────────────┐   │
+│  │ [ ] Parcelado                │   │
+│  └──────────────────────────────┘   │
+│                                     │
+│  ↓ Se marcado:                      │
+│                                     │
+│  Número de Parcelas:                │
+│  ┌─────────────────────────────┐    │
+│  │  [2] [3] [6] [10] [12] [+]  │    │
+│  └─────────────────────────────┘    │
+│                                     │
+│  Valor por Parcela: R$ 100,00       │
+│  Primeira Parcela: Março/2026       │
+│  Última Parcela: Fevereiro/2027     │
+│                                     │
+└─────────────────────────────────────┘
+```
+
+#### Visualização de Parcelas
+```
+┌─────────────────────────────────────┐
+│  📱 iPhone 15 Pro                   │
+│  Parcela 3/12 · R$ 100,00           │
+│  ────────────────────────────────── │
+│  Total: R$ 1.200 · Resta: R$ 900    │
+│  ████████░░░░░░░░░░░░░░ 25%         │
+└─────────────────────────────────────┘
+```
+
+#### Funcionalidades de Parcelamento
+- [ ] Criar compra parcelada (gera todas as parcelas automaticamente)
+- [ ] Visualizar progresso de pagamento
+- [ ] Filtrar por parcelas pendentes
+- [ ] Alerta de próximas parcelas
+- [ ] Editar/cancelar parcelas futuras
+- [ ] Antecipar parcelas
+- [ ] Resumo de comprometimento futuro
+
+### Cartões de Crédito
+
+#### Modelo de Dados
+```typescript
+interface CreditCard {
+  id: string;
+  userId: string;
+  name: string;              // "Nubank", "Itaú Platinum"
+  lastFourDigits: string;    // "1234"
+  limit: number;             // R$ 10.000
+  closingDay: number;        // Dia de fechamento (ex: 15)
+  dueDay: number;            // Dia de vencimento (ex: 22)
+  color: string;             // Cor do cartão na UI
+  icon: string;              // Ícone (ex: logo do banco)
+}
+
+interface Transaction {
+  // ... campos existentes
+  creditCardId?: string;     // Qual cartão foi usado
+}
+```
+
+#### Visualização de Fatura
+```
+┌─────────────────────────────────────┐
+│  💳 Nubank ****1234                 │
+│  Fatura de Março                    │
+├─────────────────────────────────────┤
+│  Fecha em: 15/Mar                   │
+│  Vence em: 22/Mar                   │
+│                                     │
+│  Total: R$ 2.450,00                 │
+│  Limite Usado: 24%                  │
+│  ████████░░░░░░░░░░░░░░             │
+│                                     │
+│  ─ Transações ─                     │
+│  🍔 iFood           R$ 45,90        │
+│  📱 iPhone (3/12)   R$ 100,00       │
+│  ⛽ Posto           R$ 200,00       │
+│  🛒 Amazon          R$ 350,00       │
+│                                     │
+│  [Ver Fatura Completa]              │
+└─────────────────────────────────────┘
+```
+
+### Contas e Saldos
+
+#### Modelo de Dados
+```typescript
+interface Account {
+  id: string;
+  userId: string;
+  name: string;              // "Conta Nubank", "Poupança"
+  type: 'checking' | 'savings' | 'cash' | 'investment';
+  balance: number;           // Saldo atual
+  color: string;
+  icon: string;
+  institution?: string;      // Nome do banco
+  isDefault: boolean;        // Conta padrão para transações
+}
+```
+
+#### Dashboard Multi-Contas
+```
+┌─────────────────────────────────────┐
+│  Patrimônio Total: R$ 15.450,00     │
+├─────────────────────────────────────┤
+│  ┌─────────────────────────────┐    │
+│  │ 💰 Conta Nubank             │    │
+│  │    R$ 5.200,00              │    │
+│  └─────────────────────────────┘    │
+│  ┌─────────────────────────────┐    │
+│  │ 🏦 Poupança Itaú            │    │
+│  │    R$ 8.000,00              │    │
+│  └─────────────────────────────┘    │
+│  ┌─────────────────────────────┐    │
+│  │ 💵 Dinheiro                 │    │
+│  │    R$ 250,00                │    │
+│  └─────────────────────────────┘    │
+│  ┌─────────────────────────────┐    │
+│  │ 📈 Investimentos            │    │
+│  │    R$ 2.000,00              │    │
+│  └─────────────────────────────┘    │
+└─────────────────────────────────────┘
+```
+
+### Transferências Entre Contas
+
+```typescript
+interface Transfer {
+  id: string;
+  userId: string;
+  fromAccountId: string;
+  toAccountId: string;
+  amount: number;
+  date: Date;
+  description?: string;
+}
+```
+
+### Transações Recorrentes
+
+```typescript
+interface RecurringTransaction {
+  id: string;
+  userId: string;
+  amount: number;
+  type: 'expense' | 'income';
+  categoryId: string;
+  description: string;
+
+  // Configuração de recorrência
+  frequency: 'daily' | 'weekly' | 'monthly' | 'yearly';
+  dayOfMonth?: number;        // Para mensal (ex: dia 5)
+  dayOfWeek?: number;         // Para semanal (0-6)
+  startDate: Date;
+  endDate?: Date;             // null = infinito
+
+  // Status
+  isActive: boolean;
+  lastGeneratedDate?: Date;
+  nextDueDate: Date;
+}
+```
+
+#### Exemplos de Recorrências
+- Aluguel: Todo dia 5 do mês
+- Salário: Todo dia 1 do mês
+- Netflix: Todo dia 15 do mês
+- Academia: Todo dia 10 do mês
+
+### Metas Financeiras
+
+```typescript
+interface Goal {
+  id: string;
+  userId: string;
+  name: string;              // "Viagem para Europa"
+  targetAmount: number;      // R$ 15.000
+  currentAmount: number;     // R$ 3.500
+  deadline?: Date;           // Julho/2026
+  icon: string;
+  color: string;
+  accountId?: string;        // Conta associada (opcional)
+}
+```
+
+#### UI de Metas
+```
+┌─────────────────────────────────────┐
+│  🎯 Metas                           │
+├─────────────────────────────────────┤
+│  ┌─────────────────────────────┐    │
+│  │ ✈️ Viagem Europa            │    │
+│  │ R$ 3.500 / R$ 15.000        │    │
+│  │ ██████░░░░░░░░░░░░░░ 23%    │    │
+│  │ Meta: Jul/2026 (4 meses)    │    │
+│  │ Depositar R$ 2.875/mês      │    │
+│  └─────────────────────────────┘    │
+│                                     │
+│  ┌─────────────────────────────┐    │
+│  │ 🚗 Carro Novo               │    │
+│  │ R$ 12.000 / R$ 50.000       │    │
+│  │ ████░░░░░░░░░░░░░░░░ 24%    │    │
+│  │ Meta: Dez/2026              │    │
+│  └─────────────────────────────┘    │
+│                                     │
+│  [+ Nova Meta]                      │
+└─────────────────────────────────────┘
+```
+
+### Agenda Financeira
+
+Visualização de calendário com:
+- Parcelas a vencer
+- Contas recorrentes
+- Vencimento de faturas
+- Datas de recebimento (salário, freelance)
+
+```
+┌─────────────────────────────────────┐
+│  📅 Março 2026                      │
+├─────────────────────────────────────┤
+│  Dom Seg Ter Qua Qui Sex Sáb       │
+│                      1   2   3      │
+│   4   5   6   7   8   9  10        │
+│       🔴            🟢              │
+│  11  12  13  14  15  16  17        │
+│           🔴      💳                │
+│  18  19  20  21  22  23  24        │
+│                   💳🔴              │
+│  25  26  27  28  29  30  31        │
+│                   🔴                │
+├─────────────────────────────────────┤
+│  Legenda:                           │
+│  🔴 Conta a pagar                   │
+│  🟢 Receita prevista                │
+│  💳 Fatura cartão                   │
+└─────────────────────────────────────┘
+```
+
+### Relatórios Avançados
+
+- Comparativo mensal/anual
+- Gráfico de tendência de gastos
+- Análise por categoria ao longo do tempo
+- Previsão de gastos futuros
+- Relatório de economia
+- Relatório de patrimônio líquido
+
+---
+
 ## Configurações e Integrações
 
 ### Variáveis de Ambiente
