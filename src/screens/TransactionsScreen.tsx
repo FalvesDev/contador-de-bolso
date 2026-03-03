@@ -1,13 +1,17 @@
 /**
- * Tela de lista de transações
+ * Tela de lista de transações - Design moderno banking
+ * Com filtros avançados por período e categoria
  */
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   ScrollView,
   StyleSheet,
   Pressable,
+  TouchableOpacity,
+  Modal,
+  TextInput,
 } from 'react-native';
 import { Text } from '../components/ui/Text';
 import { Card } from '../components/ui/Card';
@@ -15,8 +19,18 @@ import { Transaction } from '../components/dashboard/RecentTransactions';
 import { getCategoryById } from '../constants/categories';
 import { useTheme } from '../contexts/ThemeContext';
 import { spacing, borderRadius } from '../constants/spacing';
+import { CategoryIcon, ClipboardIcon, CalendarIcon, XIcon, ChevronDownIcon, SearchIcon } from '../components/ui/Icons';
 
 type FilterType = 'all' | 'expense' | 'income';
+type PeriodType = 'all' | 'today' | 'week' | 'month' | 'year';
+
+const PERIOD_OPTIONS: { value: PeriodType; label: string }[] = [
+  { value: 'all', label: 'Todo período' },
+  { value: 'today', label: 'Hoje' },
+  { value: 'week', label: 'Esta semana' },
+  { value: 'month', label: 'Este mês' },
+  { value: 'year', label: 'Este ano' },
+];
 
 interface TransactionsScreenProps {
   transactions: Transaction[];
@@ -74,6 +88,8 @@ function TransactionItem({
   dangerColor: string;
 }) {
   const category = getCategoryById(transaction.categoryId);
+  const iconName = category?.icon || 'receipt';
+  const iconColor = category?.color || '#64748B';
 
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('pt-BR', {
@@ -98,10 +114,10 @@ function TransactionItem({
       <View
         style={[
           styles.iconContainer,
-          { backgroundColor: (category?.color || '#999') + '20' },
+          { backgroundColor: iconColor + '15' },
         ]}
       >
-        <Text style={styles.icon}>{category?.icon || '📦'}</Text>
+        <CategoryIcon name={iconName} size={20} color={iconColor} />
       </View>
 
       <View style={styles.transactionInfo}>
@@ -129,18 +145,73 @@ export function TransactionsScreen({
 }: TransactionsScreenProps) {
   const { theme } = useTheme();
   const [filter, setFilter] = useState<FilterType>('all');
+  const [period, setPeriod] = useState<PeriodType>('month');
+  const [showPeriodPicker, setShowPeriodPicker] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredTransactions = transactions
-    .filter(t => filter === 'all' || t.type === filter)
-    .sort((a, b) => b.date.getTime() - a.date.getTime());
+  // Filtrar por busca
+  const filterBySearch = (t: Transaction) => {
+    if (!searchQuery.trim()) return true;
+    const query = searchQuery.toLowerCase().trim();
+    const category = getCategoryById(t.categoryId);
+    return (
+      t.description.toLowerCase().includes(query) ||
+      (category?.name.toLowerCase().includes(query) ?? false)
+    );
+  };
 
-  const totalIncome = transactions
-    .filter(t => t.type === 'income')
-    .reduce((sum, t) => sum + t.amount, 0);
+  // Filtrar por período
+  const filterByPeriod = (t: Transaction) => {
+    if (period === 'all') return true;
 
-  const totalExpense = transactions
-    .filter(t => t.type === 'expense')
-    .reduce((sum, t) => sum + t.amount, 0);
+    const transactionDate = new Date(t.date);
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+
+    switch (period) {
+      case 'today':
+        const startOfToday = new Date(today);
+        startOfToday.setHours(0, 0, 0, 0);
+        return transactionDate >= startOfToday && transactionDate <= today;
+      case 'week':
+        const startOfWeek = new Date(today);
+        startOfWeek.setDate(today.getDate() - today.getDay());
+        startOfWeek.setHours(0, 0, 0, 0);
+        return transactionDate >= startOfWeek && transactionDate <= today;
+      case 'month':
+        const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        return transactionDate >= startOfMonth && transactionDate <= today;
+      case 'year':
+        const startOfYear = new Date(today.getFullYear(), 0, 1);
+        return transactionDate >= startOfYear && transactionDate <= today;
+      default:
+        return true;
+    }
+  };
+
+  const filteredTransactions = useMemo(() => {
+    return transactions
+      .filter(t => filter === 'all' || t.type === filter)
+      .filter(filterByPeriod)
+      .filter(filterBySearch)
+      .sort((a, b) => b.date.getTime() - a.date.getTime());
+  }, [transactions, filter, period, searchQuery]);
+
+  const totalIncome = useMemo(() =>
+    filteredTransactions
+      .filter(t => t.type === 'income')
+      .reduce((sum, t) => sum + t.amount, 0),
+    [filteredTransactions]
+  );
+
+  const totalExpense = useMemo(() =>
+    filteredTransactions
+      .filter(t => t.type === 'expense')
+      .reduce((sum, t) => sum + t.amount, 0),
+    [filteredTransactions]
+  );
+
+  const currentPeriodLabel = PERIOD_OPTIONS.find(p => p.value === period)?.label || 'Período';
 
   // Agrupar por data
   const groupedTransactions = filteredTransactions.reduce((groups, transaction) => {
@@ -173,8 +244,28 @@ export function TransactionsScreen({
       <View style={styles.header}>
         <Text preset="h3" style={{ color: theme.colors.text }}>Transações</Text>
         <Text preset="caption" color={theme.colors.textSecondary}>
-          {transactions.length} registros
+          {filteredTransactions.length} de {transactions.length}
         </Text>
+      </View>
+
+      {/* Campo de Busca */}
+      <View style={styles.searchContainer}>
+        <View style={[styles.searchInput, { backgroundColor: theme.colors.backgroundSecondary, borderColor: theme.colors.border }]}>
+          <SearchIcon size={18} color={theme.colors.textSecondary} />
+          <TextInput
+            style={[styles.searchTextInput, { color: theme.colors.text }]}
+            placeholder="Buscar por descrição ou categoria..."
+            placeholderTextColor={theme.colors.textTertiary}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            returnKeyType="search"
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <XIcon size={18} color={theme.colors.textSecondary} />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       {/* Resumo */}
@@ -194,7 +285,19 @@ export function TransactionsScreen({
         </View>
       </View>
 
-      {/* Filtros */}
+      {/* Filtro de Período */}
+      <View style={styles.periodFilter}>
+        <TouchableOpacity
+          style={[styles.periodBtn, { backgroundColor: theme.colors.backgroundSecondary, borderColor: theme.colors.border }]}
+          onPress={() => setShowPeriodPicker(true)}
+        >
+          <CalendarIcon size={16} color={theme.colors.primary} />
+          <Text style={[styles.periodBtnText, { color: theme.colors.text }]}>{currentPeriodLabel}</Text>
+          <ChevronDownIcon size={16} color={theme.colors.textSecondary} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Filtros de Tipo */}
       <View style={styles.filters}>
         <FilterChip
           label="Todas"
@@ -221,6 +324,50 @@ export function TransactionsScreen({
           inactiveBg={theme.colors.backgroundTertiary}
         />
       </View>
+
+      {/* Modal de Seleção de Período */}
+      <Modal
+        visible={showPeriodPicker}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowPeriodPicker(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setShowPeriodPicker(false)}>
+          <View style={[styles.periodModal, { backgroundColor: theme.colors.card }]}>
+            <View style={[styles.periodModalHeader, { borderBottomColor: theme.colors.border }]}>
+              <Text style={[styles.periodModalTitle, { color: theme.colors.text }]}>Selecionar Período</Text>
+              <TouchableOpacity onPress={() => setShowPeriodPicker(false)}>
+                <XIcon size={24} color={theme.colors.text} />
+              </TouchableOpacity>
+            </View>
+            {PERIOD_OPTIONS.map(option => (
+              <TouchableOpacity
+                key={option.value}
+                style={[
+                  styles.periodOption,
+                  period === option.value && { backgroundColor: theme.colors.primary + '15' }
+                ]}
+                onPress={() => {
+                  setPeriod(option.value);
+                  setShowPeriodPicker(false);
+                }}
+              >
+                <Text
+                  style={[
+                    styles.periodOptionText,
+                    { color: period === option.value ? theme.colors.primary : theme.colors.text }
+                  ]}
+                >
+                  {option.label}
+                </Text>
+                {period === option.value && (
+                  <View style={[styles.periodCheck, { backgroundColor: theme.colors.primary }]} />
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </Pressable>
+      </Modal>
 
       {/* Lista */}
       <ScrollView
@@ -255,7 +402,9 @@ export function TransactionsScreen({
 
         {filteredTransactions.length === 0 && (
           <View style={styles.empty}>
-            <Text style={styles.emptyIcon}>📭</Text>
+            <View style={[styles.emptyIconContainer, { backgroundColor: theme.colors.backgroundTertiary }]}>
+              <ClipboardIcon size={40} color={theme.colors.textSecondary} />
+            </View>
             <Text preset="body" color={theme.colors.textSecondary} center>
               Nenhuma transação encontrada
             </Text>
@@ -329,9 +478,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: spacing[3],
   },
-  icon: {
-    fontSize: 20,
-  },
   transactionInfo: {
     flex: 1,
     marginRight: spacing[2],
@@ -344,11 +490,94 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: spacing[12],
   },
-  emptyIcon: {
-    fontSize: 48,
+  emptyIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: spacing[3],
   },
   spacer: {
     height: spacing[8],
+  },
+  // Estilos do campo de busca
+  searchContainer: {
+    paddingHorizontal: spacing[4],
+    paddingTop: spacing[2],
+  },
+  searchInput: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    gap: spacing[2],
+  },
+  searchTextInput: {
+    flex: 1,
+    fontSize: 15,
+    paddingVertical: spacing[1],
+  },
+  // Estilos do filtro de período
+  periodFilter: {
+    paddingHorizontal: spacing[4],
+    paddingTop: spacing[3],
+  },
+  periodBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[2],
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+    alignSelf: 'flex-start',
+    gap: spacing[2],
+  },
+  periodBtnText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  // Estilos do modal de período
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing[4],
+  },
+  periodModal: {
+    width: '100%',
+    maxWidth: 320,
+    borderRadius: borderRadius.xl,
+    overflow: 'hidden',
+  },
+  periodModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
+    borderBottomWidth: 1,
+  },
+  periodModalTitle: {
+    fontSize: 17,
+    fontWeight: '600',
+  },
+  periodOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[3],
+  },
+  periodOptionText: {
+    fontSize: 16,
+  },
+  periodCheck: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
 });

@@ -1,5 +1,5 @@
 /**
- * Cards de estatísticas rápidas
+ * Cards de estatísticas rápidas - Design moderno banking
  */
 
 import React from 'react';
@@ -8,9 +8,11 @@ import { Text, MoneyText } from '../ui/Text';
 import { Card } from '../ui/Card';
 import { useTheme } from '../../contexts/ThemeContext';
 import { spacing } from '../../constants/spacing';
+import { ChartBarIcon, TrendingUpIcon, TargetIcon } from '../ui/Icons';
 
 interface StatItemProps {
-  icon: string;
+  Icon: React.ComponentType<{ size?: number; color?: string }>;
+  iconColor: string;
   label: string;
   value: number | string;
   valueColor?: string;
@@ -20,10 +22,12 @@ interface StatItemProps {
   textColor: string;
 }
 
-function StatItem({ icon, label, value, valueColor, isPercentage, cardBg, labelColor, textColor }: StatItemProps) {
+function StatItem({ Icon, iconColor, label, value, valueColor, isPercentage, cardBg, labelColor, textColor }: StatItemProps) {
   return (
     <Card variant="elevated" padding="md" style={{ ...styles.statCard, backgroundColor: cardBg }}>
-      <Text style={styles.icon}>{icon}</Text>
+      <View style={[styles.iconContainer, { backgroundColor: iconColor + '15' }]}>
+        <Icon size={20} color={iconColor} />
+      </View>
       <Text preset="caption" color={labelColor} style={styles.label}>
         {label}
       </Text>
@@ -59,7 +63,8 @@ export function QuickStats({ biggestExpense, dailyAverage, budgetUsed }: QuickSt
   return (
     <View style={styles.container}>
       <StatItem
-        icon="📊"
+        Icon={ChartBarIcon}
+        iconColor={theme.colors.primary}
         label="Maior gasto"
         value={biggestExpense}
         cardBg={theme.colors.card}
@@ -67,7 +72,8 @@ export function QuickStats({ biggestExpense, dailyAverage, budgetUsed }: QuickSt
         textColor={theme.colors.text}
       />
       <StatItem
-        icon="📈"
+        Icon={TrendingUpIcon}
+        iconColor={'#3B82F6'}
         label="Média/dia"
         value={dailyAverage}
         cardBg={theme.colors.card}
@@ -75,7 +81,8 @@ export function QuickStats({ biggestExpense, dailyAverage, budgetUsed }: QuickSt
         textColor={theme.colors.text}
       />
       <StatItem
-        icon="🎯"
+        Icon={TargetIcon}
+        iconColor={getBudgetColor()}
         label="Orçamento"
         value={Math.round(budgetUsed)}
         valueColor={getBudgetColor()}
@@ -99,8 +106,12 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
   },
-  icon: {
-    fontSize: 24,
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: spacing[2],
   },
   label: {

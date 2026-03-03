@@ -1,119 +1,84 @@
 /**
- * Home Screen - Dashboard Premium
- * Design limpo e profissional
+ * Home Screen - Dashboard Simples e Clean
+ * Fácil de entender para qualquer usuário
  */
 
-import React from 'react';
-import { ScrollView, View, StyleSheet, Platform, TouchableOpacity } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
+import React, { useState } from 'react';
+import { ScrollView, View, StyleSheet, Dimensions, TouchableOpacity, Platform } from 'react-native';
+import Svg, { Defs, LinearGradient, Stop, Rect, Circle, Path } from 'react-native-svg';
 import { Text } from '../components/ui/Text';
-import { BalanceCard } from '../components/dashboard/BalanceCard';
-import { QuickStats } from '../components/dashboard/QuickStats';
+import { Card } from '../components/ui/Card';
+import { BellIcon, EyeIcon, EyeOffIcon, ArrowUpIcon, ArrowDownIcon } from '../components/ui/Icons';
 import { RecentTransactions, Transaction } from '../components/dashboard/RecentTransactions';
-import { PieChart } from '../components/charts/PieChart';
-import { HorizontalBarChart } from '../components/charts/BarChart';
-import { BudgetProgressBar } from '../components/charts/ProgressBar';
+import { FutureExpenses } from '../components/dashboard/FutureExpenses';
+import { BudgetManager } from '../components/budget/BudgetManager';
+import { GoalsCard } from '../components/goals/GoalsCard';
 import { getCategoryById } from '../constants/categories';
 import { useTheme } from '../contexts/ThemeContext';
+import { Budget } from '../hooks/useBudgets';
+import { Goal } from '../hooks/useGoals';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface HomeScreenProps {
   transactions: Transaction[];
+  budgets: Budget[];
+  goals: Goal[];
+  unreadNotifications: number;
   onSeeAllTransactions: () => void;
   onTransactionPress: (transaction: Transaction) => void;
-}
-
-// Ícone de sino
-function BellIcon({ size = 24, color = '#64748B' }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-      <Path
-        d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"
-        stroke={color}
-        strokeWidth={1.5}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <Path
-        d="M13.73 21a2 2 0 0 1-3.46 0"
-        stroke={color}
-        strokeWidth={1.5}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </Svg>
-  );
-}
-
-function Header() {
-  const { theme } = useTheme();
-  const today = new Date();
-  const greeting = today.getHours() < 12 ? 'Bom dia' : today.getHours() < 18 ? 'Boa tarde' : 'Boa noite';
-
-  return (
-    <View style={styles.header}>
-      <View>
-        <Text style={[styles.greeting, { color: theme.colors.textSecondary }]}>
-          {greeting}
-        </Text>
-        <Text style={[styles.appName, { color: theme.colors.text }]}>
-          Contador de Bolso
-        </Text>
-      </View>
-      <TouchableOpacity style={[styles.bellBtn, { backgroundColor: theme.colors.backgroundSecondary }]}>
-        <BellIcon color={theme.colors.textSecondary} size={20} />
-      </TouchableOpacity>
-    </View>
-  );
+  onNotificationsPress: () => void;
+  onEditBudget: (categoryId: string, currentLimit: number) => void;
+  onAddBudget: () => void;
 }
 
 export function HomeScreen({
   transactions,
+  budgets,
+  goals,
+  unreadNotifications,
   onSeeAllTransactions,
   onTransactionPress,
+  onNotificationsPress,
+  onEditBudget,
+  onAddBudget,
 }: HomeScreenProps) {
   const { theme } = useTheme();
+  const [hideValues, setHideValues] = useState(false);
 
-  // Cálculos
+  // Cálculos simples
   const income = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
   const expenses = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
   const balance = income - expenses;
-  const biggestExpense = Math.max(...transactions.filter(t => t.type === 'expense').map(t => t.amount), 0);
-  const dailyAvg = new Date().getDate() > 0 ? expenses / new Date().getDate() : 0;
-  const monthlyBudget = 5000;
-  const budgetUsed = monthlyBudget > 0 ? (expenses / monthlyBudget) * 100 : 0;
 
-  const currentMonth = new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+  const today = new Date();
+  const greeting = today.getHours() < 12 ? 'Bom dia' : today.getHours() < 18 ? 'Boa tarde' : 'Boa noite';
+  const currentMonth = today.toLocaleDateString('pt-BR', { month: 'long' });
 
-  // Dados para gráfico de pizza
-  const expensesByCategory = transactions
-    .filter(t => t.type === 'expense')
-    .reduce((acc, t) => {
-      acc[t.categoryId] = (acc[t.categoryId] || 0) + t.amount;
-      return acc;
-    }, {} as Record<string, number>);
+  const formatMoney = (value: number) => {
+    return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  };
 
-  const pieData = Object.entries(expensesByCategory)
+  // Gastos do mês atual agrupados por categoria (top 3)
+  const thisMonthExpenses = transactions.filter(t => {
+    const tDate = new Date(t.date);
+    return t.type === 'expense' &&
+           tDate.getMonth() === today.getMonth() &&
+           tDate.getFullYear() === today.getFullYear();
+  });
+
+  const expensesByCategory: Record<string, number> = {};
+  thisMonthExpenses.forEach(t => {
+    expensesByCategory[t.categoryId] = (expensesByCategory[t.categoryId] || 0) + t.amount;
+  });
+
+  const topCategories = Object.entries(expensesByCategory)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 3)
     .map(([catId, value]) => {
       const cat = getCategoryById(catId);
-      return {
-        id: catId,
-        label: cat?.name || 'Outros',
-        value,
-        color: cat?.color || '#94A3B8',
-      };
-    })
-    .sort((a, b) => b.value - a.value)
-    .slice(0, 5);
-
-  // Dados para evolução mensal
-  const monthlyData = [
-    { label: 'Out', value: 3200, color: theme.colors.primaryLight },
-    { label: 'Nov', value: 2800, color: theme.colors.primaryLight },
-    { label: 'Dez', value: 4100, color: theme.colors.primaryLight },
-    { label: 'Jan', value: 3500, color: theme.colors.primaryLight },
-    { label: 'Fev', value: 2900, color: theme.colors.primaryLight },
-    { label: 'Mar', value: expenses, color: theme.colors.primary },
-  ];
+      return { name: cat?.name || 'Outros', value, color: cat?.color || '#94A3B8' };
+    });
 
   const sortedTransactions = [...transactions].sort((a, b) => b.date.getTime() - a.date.getTime());
 
@@ -123,53 +88,162 @@ export function HomeScreen({
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      <Header />
+      {/* Header com Gradiente */}
+      <View style={styles.headerContainer}>
+        <Svg width={SCREEN_WIDTH} height={240} style={styles.headerSvg}>
+          <Defs>
+            <LinearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <Stop offset="0%" stopColor={theme.colors.gradientStart} />
+              <Stop offset="100%" stopColor={theme.colors.gradientEnd} />
+            </LinearGradient>
+          </Defs>
+          <Rect x="0" y="0" width={SCREEN_WIDTH} height={240} fill="url(#grad)" />
+          <Circle cx={SCREEN_WIDTH * 0.85} cy={40} r={80} fill="rgba(255,255,255,0.06)" />
+          <Circle cx={SCREEN_WIDTH * 0.1} cy={130} r={50} fill="rgba(255,255,255,0.04)" />
+          <Path
+            d={`M0 200 C ${SCREEN_WIDTH * 0.3} 200 ${SCREEN_WIDTH * 0.5} 240 ${SCREEN_WIDTH} 200 L ${SCREEN_WIDTH} 240 L 0 240 Z`}
+            fill={theme.colors.background}
+          />
+        </Svg>
 
-      <BalanceCard
-        balance={balance}
-        income={income}
-        expenses={expenses}
-        monthName={currentMonth.charAt(0).toUpperCase() + currentMonth.slice(1)}
-      />
-
-      <QuickStats
-        biggestExpense={biggestExpense}
-        dailyAverage={dailyAvg}
-        budgetUsed={budgetUsed}
-      />
-
-      <BudgetProgressBar
-        current={expenses}
-        total={monthlyBudget}
-        title="Orçamento do Mês"
-      />
-
-      {pieData.length > 0 && <PieChart data={pieData} title="Gastos por Categoria" />}
-
-      <HorizontalBarChart data={monthlyData} title="Evolução dos Gastos" />
-
-      {/* Insight Card */}
-      <View style={[styles.insightCard, { backgroundColor: theme.colors.card }]}>
-        <View style={styles.insightHeader}>
-          <View style={[styles.insightIcon, { backgroundColor: theme.colors.primaryLight + '20' }]}>
-            <Text style={{ fontSize: 16 }}>💡</Text>
+        <View style={styles.headerContent}>
+          {/* Top bar */}
+          <View style={styles.topBar}>
+            <View>
+              <Text style={styles.greeting}>{greeting}</Text>
+              <Text style={styles.appName}>Contador de Bolso</Text>
+            </View>
+            <TouchableOpacity style={styles.bellBtn} onPress={onNotificationsPress}>
+              <BellIcon size={22} color="rgba(255,255,255,0.9)" />
+              {unreadNotifications > 0 && (
+                <View style={styles.notificationBadge}>
+                  <Text style={styles.notificationBadgeText}>
+                    {unreadNotifications > 9 ? '9+' : unreadNotifications}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
           </View>
-          <Text style={[styles.insightTitle, { color: theme.colors.text }]}>Dica</Text>
+
+          {/* Saldo */}
+          <View style={styles.balanceSection}>
+            <View style={styles.balanceHeader}>
+              <Text style={styles.balanceLabel}>Saldo em {currentMonth}</Text>
+              <TouchableOpacity onPress={() => setHideValues(!hideValues)}>
+                {hideValues ? (
+                  <EyeOffIcon size={20} color="rgba(255,255,255,0.7)" />
+                ) : (
+                  <EyeIcon size={20} color="rgba(255,255,255,0.7)" />
+                )}
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.balanceValue}>
+              {hideValues ? 'R$ ••••••' : formatMoney(balance)}
+            </Text>
+          </View>
         </View>
-        <Text style={[styles.insightText, { color: theme.colors.textSecondary }]}>
-          {budgetUsed > 80
-            ? 'Você já usou mais de 80% do orçamento. Reduza os gastos.'
-            : budgetUsed > 50
-            ? 'Metade do orçamento usado. Continue assim!'
-            : 'Seus gastos estão controlados este mês.'}
-        </Text>
       </View>
 
+      {/* Cards de Receita e Despesa */}
+      <View style={styles.summaryCards}>
+        <View style={[styles.summaryCard, { backgroundColor: theme.colors.card }]}>
+          <View style={[styles.summaryIconBg, { backgroundColor: '#10B981' + '20' }]}>
+            <ArrowUpIcon size={18} color="#10B981" />
+          </View>
+          <View style={styles.summaryTextContainer}>
+            <Text style={[styles.summaryLabel, { color: theme.colors.textSecondary }]}>Receitas</Text>
+            <Text
+              style={[styles.summaryValue, { color: '#10B981' }]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.7}
+            >
+              {hideValues ? '••••' : formatMoney(income)}
+            </Text>
+          </View>
+        </View>
+
+        <View style={[styles.summaryCard, { backgroundColor: theme.colors.card }]}>
+          <View style={[styles.summaryIconBg, { backgroundColor: '#EF4444' + '20' }]}>
+            <ArrowDownIcon size={18} color="#EF4444" />
+          </View>
+          <View style={styles.summaryTextContainer}>
+            <Text style={[styles.summaryLabel, { color: theme.colors.textSecondary }]}>Despesas</Text>
+            <Text
+              style={[styles.summaryValue, { color: '#EF4444' }]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.7}
+            >
+              {hideValues ? '••••' : formatMoney(expenses)}
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Onde você mais gastou */}
+      {topCategories.length > 0 && (
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+            Onde você mais gastou
+          </Text>
+          <Card variant="elevated" padding="md" style={{ backgroundColor: theme.colors.card }}>
+            {topCategories.map((cat, index) => (
+              <View key={index} style={styles.categoryRow}>
+                <View style={styles.categoryInfo}>
+                  <View style={[styles.categoryDot, { backgroundColor: cat.color }]} />
+                  <Text style={[styles.categoryName, { color: theme.colors.text }]}>{cat.name}</Text>
+                </View>
+                <Text style={[styles.categoryValue, { color: theme.colors.text }]}>
+                  {hideValues ? '••••' : formatMoney(cat.value)}
+                </Text>
+              </View>
+            ))}
+          </Card>
+        </View>
+      )}
+
+      {/* Últimas transações */}
       <RecentTransactions
         transactions={sortedTransactions.slice(0, 5)}
         onSeeAll={onSeeAllTransactions}
         onTransactionPress={onTransactionPress}
       />
+
+      {/* Compromissos Futuros (parcelas e fixos) */}
+      <FutureExpenses transactions={transactions} />
+
+      {/* Orçamento por Categoria */}
+      <BudgetManager
+        transactions={transactions}
+        budgets={budgets}
+        onEditBudget={onEditBudget}
+        onAddBudget={onAddBudget}
+      />
+
+      {/* Metas Financeiras */}
+      <GoalsCard
+        goals={goals}
+        onAddGoal={() => {}}
+        onViewGoal={() => {}}
+      />
+
+      {/* Dica simples */}
+      {balance < 0 && (
+        <View style={[styles.tipCard, { backgroundColor: '#FEF3C7', borderColor: '#F59E0B' }]}>
+          <Text style={[styles.tipText, { color: '#92400E' }]}>
+            Atenção: suas despesas estão maiores que suas receitas este mês.
+          </Text>
+        </View>
+      )}
+
+      {balance > income * 0.2 && balance > 0 && (
+        <View style={[styles.tipCard, { backgroundColor: '#D1FAE5', borderColor: '#10B981' }]}>
+          <Text style={[styles.tipText, { color: '#065F46' }]}>
+            Parabéns! Você está conseguindo guardar dinheiro este mês.
+          </Text>
+        </View>
+      )}
 
       <View style={{ height: 24 }} />
     </ScrollView>
@@ -183,59 +257,159 @@ const styles = StyleSheet.create({
   content: {
     paddingBottom: 16,
   },
-  header: {
+  headerContainer: {
+    height: 240,
+    marginBottom: -20,
+  },
+  headerSvg: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+  },
+  headerContent: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+  },
+  topBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 8,
-    paddingBottom: 4,
+    marginBottom: 24,
   },
   greeting: {
-    fontSize: 13,
-    fontWeight: '400',
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 14,
   },
   appName: {
-    fontSize: 20,
+    color: '#FFFFFF',
+    fontSize: 22,
     fontWeight: '700',
     marginTop: 2,
   },
   bellBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  balanceSection: {
+    marginBottom: 16,
+  },
+  balanceHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  balanceLabel: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 14,
+    textTransform: 'capitalize',
+  },
+  balanceValue: {
+    color: '#FFFFFF',
+    fontSize: 36,
+    fontWeight: '700',
+    letterSpacing: -1,
+  },
+  summaryCards: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    gap: 12,
+    marginTop: 10,
+  },
+  summaryCard: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderRadius: 16,
+    gap: 12,
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8 },
+      android: { elevation: 2 },
+    }),
+  },
+  summaryIconBg: {
     width: 40,
     height: 40,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  insightCard: {
-    marginHorizontal: 20,
-    marginTop: 16,
-    borderRadius: 16,
-    padding: 16,
-    ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8 },
-      android: { elevation: 2 },
-    }),
+  summaryTextContainer: {
+    flex: 1,
+    overflow: 'hidden',
   },
-  insightHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
+  summaryLabel: {
+    fontSize: 12,
+    marginBottom: 2,
   },
-  insightIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10,
-  },
-  insightTitle: {
-    fontSize: 14,
+  summaryValue: {
+    fontSize: 15,
     fontWeight: '600',
   },
-  insightText: {
-    fontSize: 13,
+  section: {
+    paddingHorizontal: 20,
+    marginTop: 24,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  categoryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+  },
+  categoryInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  categoryDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: 12,
+  },
+  categoryName: {
+    fontSize: 15,
+  },
+  categoryValue: {
+    fontSize: 15,
+    fontWeight: '500',
+  },
+  tipCard: {
+    marginHorizontal: 20,
+    marginTop: 20,
+    padding: 16,
+    borderRadius: 12,
+    borderLeftWidth: 4,
+  },
+  tipText: {
+    fontSize: 14,
     lineHeight: 20,
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#EF4444',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  notificationBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
   },
 });

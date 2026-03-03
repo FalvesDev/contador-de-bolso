@@ -1,5 +1,5 @@
 /**
- * Seletor de Temas - Modal para escolher o tema do app
+ * Seletor de Temas - Design moderno banking
  */
 
 import React from 'react';
@@ -14,6 +14,7 @@ import {
 import { Text } from '../ui/Text';
 import { useTheme, themes, Theme } from '../../contexts/ThemeContext';
 import { spacing, borderRadius } from '../../constants/spacing';
+import { XIcon, CheckIcon, ZapIcon, MoonIcon, SunIcon, LightbulbIcon } from '../ui/Icons';
 
 interface ThemeSelectorProps {
   visible: boolean;
@@ -60,16 +61,16 @@ function ThemeCard({ theme, isSelected, onSelect }: {
 
       {/* Info do tema */}
       <View style={styles.themeInfo}>
-        <Text style={styles.themeIcon}>{theme.icon}</Text>
+        <View style={[styles.themeColorDot, { backgroundColor: theme.colors.primary }]} />
         <Text
           preset="bodySmall"
-          style={{ color: theme.colors.text }}
+          style={{ color: theme.colors.text, flex: 1 }}
         >
           {theme.name}
         </Text>
         {isSelected && (
           <View style={[styles.checkmark, { backgroundColor: theme.colors.primary }]}>
-            <Text style={styles.checkmarkText}>✓</Text>
+            <CheckIcon size={12} color="#FFFFFF" />
           </View>
         )}
       </View>
@@ -106,7 +107,7 @@ export function ThemeSelector({ visible, onClose }: ThemeSelectorProps) {
             style={[styles.closeButton, { backgroundColor: currentTheme.colors.backgroundTertiary }]}
             onPress={onClose}
           >
-            <Text style={{ color: currentTheme.colors.text }}>✕</Text>
+            <XIcon size={18} color={currentTheme.colors.text} />
           </Pressable>
         </View>
 
@@ -117,12 +118,15 @@ export function ThemeSelector({ visible, onClose }: ThemeSelectorProps) {
         >
           {/* Temas Tecnológicos/Futuristas */}
           <View style={styles.section}>
-            <Text
-              preset="label"
-              style={[styles.sectionTitle, { color: currentTheme.colors.textSecondary }]}
-            >
-              🚀 FUTURISTA / TECH
-            </Text>
+            <View style={styles.sectionHeader}>
+              <ZapIcon size={18} color={currentTheme.colors.warning} />
+              <Text
+                preset="label"
+                style={{ color: currentTheme.colors.textSecondary, marginLeft: 8 }}
+              >
+                FUTURISTA / TECH
+              </Text>
+            </View>
             <View style={styles.themesGrid}>
               {techThemes.map((theme) => (
                 <ThemeCard
@@ -137,12 +141,15 @@ export function ThemeSelector({ visible, onClose }: ThemeSelectorProps) {
 
           {/* Temas Escuros */}
           <View style={styles.section}>
-            <Text
-              preset="label"
-              style={[styles.sectionTitle, { color: currentTheme.colors.textSecondary }]}
-            >
-              🌙 TEMAS ESCUROS
-            </Text>
+            <View style={styles.sectionHeader}>
+              <MoonIcon size={18} color={currentTheme.colors.primary} />
+              <Text
+                preset="label"
+                style={{ color: currentTheme.colors.textSecondary, marginLeft: 8 }}
+              >
+                TEMAS ESCUROS
+              </Text>
+            </View>
             <View style={styles.themesGrid}>
               {darkThemes.map((theme) => (
                 <ThemeCard
@@ -157,12 +164,15 @@ export function ThemeSelector({ visible, onClose }: ThemeSelectorProps) {
 
           {/* Temas Claros */}
           <View style={styles.section}>
-            <Text
-              preset="label"
-              style={[styles.sectionTitle, { color: currentTheme.colors.textSecondary }]}
-            >
-              ☀️ TEMAS CLAROS
-            </Text>
+            <View style={styles.sectionHeader}>
+              <SunIcon size={18} color={currentTheme.colors.warning} />
+              <Text
+                preset="label"
+                style={{ color: currentTheme.colors.textSecondary, marginLeft: 8 }}
+              >
+                TEMAS CLAROS
+              </Text>
+            </View>
             <View style={styles.themesGrid}>
               {lightThemes.map((theme) => (
                 <ThemeCard
@@ -177,10 +187,10 @@ export function ThemeSelector({ visible, onClose }: ThemeSelectorProps) {
 
           {/* Info */}
           <View style={[styles.infoCard, { backgroundColor: currentTheme.colors.backgroundSecondary }]}>
-            <Text style={styles.infoIcon}>💡</Text>
+            <LightbulbIcon size={20} color={currentTheme.colors.warning} />
             <Text
               preset="caption"
-              style={{ color: currentTheme.colors.textSecondary, flex: 1 }}
+              style={{ color: currentTheme.colors.textSecondary, flex: 1, marginLeft: 12 }}
             >
               O tema escolhido será salvo automaticamente e aplicado ao abrir o app novamente.
             </Text>
@@ -224,7 +234,9 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: spacing[6],
   },
-  sectionTitle: {
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: spacing[3],
     marginLeft: spacing[1],
   },
@@ -284,8 +296,10 @@ const styles = StyleSheet.create({
     padding: spacing[3],
     gap: spacing[2],
   },
-  themeIcon: {
-    fontSize: 18,
+  themeColorDot: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
   },
   checkmark: {
     width: 20,
@@ -293,22 +307,12 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 'auto',
-  },
-  checkmarkText: {
-    color: '#FFF',
-    fontSize: 12,
-    fontWeight: 'bold',
   },
   infoCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: spacing[3],
+    padding: spacing[4],
     borderRadius: borderRadius.lg,
-    gap: spacing[2],
-  },
-  infoIcon: {
-    fontSize: 20,
   },
   spacer: {
     height: spacing[8],

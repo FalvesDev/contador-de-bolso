@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import Svg, { Path, Circle, Rect, G, Defs, LinearGradient, Stop } from 'react-native-svg';
+import Svg, { Path, Circle, Rect } from 'react-native-svg';
 
 interface IconProps {
   size?: number;
@@ -389,6 +389,319 @@ export function XIcon({ size = 24, color = '#EF4444' }: IconProps) {
   );
 }
 
+// Lightbulb / Dica
+export function LightbulbIcon({ size = 24, color = '#F59E0B' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M9 18H15" stroke={color} strokeWidth={2} strokeLinecap="round" />
+      <Path d="M10 22H14" stroke={color} strokeWidth={2} strokeLinecap="round" />
+      <Path d="M15.09 14C15.662 13.373 16.0631 12.6102 16.2548 11.7826C16.4465 10.9551 16.4223 10.0905 16.1845 9.27482C15.9467 8.45914 15.503 7.71948 14.8962 7.12622C14.2895 6.53296 13.5406 6.1063 12.72 5.88687C11.8994 5.66743 11.0355 5.66248 10.2124 5.87259C9.38934 6.0827 8.63481 6.50103 8.02041 7.08765C7.40601 7.67428 6.9527 8.40888 6.70361 9.22195C6.45452 10.035 6.4182 10.8991 6.598 11.7306C6.77779 12.562 7.16756 13.3335 7.73 13.97L8 14.27V18H16V14.27L15.09 14Z" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+// Shopping Bag
+export function ShoppingBagIcon({ size = 24, color = '#6366F1' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M6 2L3 6V20C3 20.5304 3.21071 21.0391 3.58579 21.4142C3.96086 21.7893 4.46957 22 5 22H19C19.5304 22 20.0391 21.7893 20.4142 21.4142C20.7893 21.0391 21 20.5304 21 20V6L18 2H6Z" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d="M3 6H21" stroke={color} strokeWidth={2} strokeLinecap="round" />
+      <Path d="M16 10C16 11.0609 15.5786 12.0783 14.8284 12.8284C14.0783 13.5786 13.0609 14 12 14C10.9391 14 9.92172 13.5786 9.17157 12.8284C8.42143 12.0783 8 11.0609 8 10" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+// Car / Transporte
+export function CarIcon({ size = 24, color = '#3B82F6' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M19 17H21V11L17.62 5.63C17.44 5.31 17.09 5.11 16.72 5.11H7.28C6.91 5.11 6.56 5.31 6.38 5.63L3 11V17H5" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+      <Circle cx="7" cy="17" r="2" stroke={color} strokeWidth={2} />
+      <Circle cx="17" cy="17" r="2" stroke={color} strokeWidth={2} />
+      <Path d="M5 17H9M15 17H19" stroke={color} strokeWidth={2} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+// Utensils / Alimentação
+export function UtensilsIcon({ size = 24, color = '#F97316' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M3 2V11C3 12.1046 3.89543 13 5 13H6C7.10457 13 8 12.1046 8 11V2" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d="M5.5 2V6" stroke={color} strokeWidth={2} strokeLinecap="round" />
+      <Path d="M5.5 13V22" stroke={color} strokeWidth={2} strokeLinecap="round" />
+      <Path d="M17 2C17 2 21 3 21 8C21 13 17 14 17 14V22" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+// Home House / Moradia
+export function HouseIcon({ size = 24, color = '#8B5CF6' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M3 9L12 2L21 9V20C21 20.5304 20.7893 21.0391 20.4142 21.4142C20.0391 21.7893 19.5304 22 19 22H5C4.46957 22 3.96086 21.7893 3.58579 21.4142C3.21071 21.0391 3 20.5304 3 20V9Z" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+// Heart / Saúde
+export function HeartIcon({ size = 24, color = '#EC4899' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M20.84 4.61C20.3292 4.09924 19.7228 3.69397 19.0554 3.41712C18.3879 3.14028 17.6725 2.99756 16.95 2.99756C16.2275 2.99756 15.5121 3.14028 14.8446 3.41712C14.1772 3.69397 13.5708 4.09924 13.06 4.61L12 5.67L10.94 4.61C9.90831 3.57831 8.50903 2.99805 7.05 2.99805C5.59097 2.99805 4.19169 3.57831 3.16 4.61C2.12831 5.64169 1.54805 7.04097 1.54805 8.5C1.54805 9.95903 2.12831 11.3583 3.16 12.39L12 21.23L20.84 12.39C21.3508 11.8792 21.756 11.2728 22.0329 10.6054C22.3097 9.93789 22.4525 9.22249 22.4525 8.5C22.4525 7.77751 22.3097 7.06211 22.0329 6.39464C21.756 5.72718 21.3508 5.12076 20.84 4.61Z" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+// Gamepad / Lazer
+export function GamepadIcon({ size = 24, color = '#F59E0B' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M6 12H10M8 10V14" stroke={color} strokeWidth={2} strokeLinecap="round" />
+      <Circle cx="15" cy="11" r="1" fill={color} />
+      <Circle cx="17" cy="13" r="1" fill={color} />
+      <Rect x="2" y="6" width="20" height="12" rx="4" stroke={color} strokeWidth={2} />
+    </Svg>
+  );
+}
+
+// GraduationCap / Educação
+export function GraduationCapIcon({ size = 24, color = '#6366F1' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M22 10L12 5L2 10L12 15L22 10Z" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d="M6 12V17L12 20L18 17V12" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d="M22 10V16" stroke={color} strokeWidth={2} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+// Briefcase / Trabalho
+export function BriefcaseIcon({ size = 24, color = '#64748B' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Rect x="2" y="7" width="20" height="14" rx="2" stroke={color} strokeWidth={2} />
+      <Path d="M16 7V5C16 3.89543 15.1046 3 14 3H10C8.89543 3 8 3.89543 8 5V7" stroke={color} strokeWidth={2} strokeLinecap="round" />
+      <Path d="M12 12V14" stroke={color} strokeWidth={2} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+// Fuel / Combustível
+export function FuelIcon({ size = 24, color = '#3B82F6' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M3 22V5C3 3.89543 3.89543 3 5 3H13C14.1046 3 15 3.89543 15 5V22" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d="M3 22H15" stroke={color} strokeWidth={2} strokeLinecap="round" />
+      <Rect x="6" y="7" width="6" height="5" rx="1" stroke={color} strokeWidth={2} />
+      <Path d="M15 12H17C18.1046 12 19 12.8954 19 14V17C19 18.1046 19.8954 19 21 19V19C22.1046 19 23 18.1046 23 17V8L19 4" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+// LogOut
+export function LogOutIcon({ size = 24, color = '#EF4444' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M9 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V5C3 4.46957 3.21071 3.96086 3.58579 3.58579C3.96086 3.21071 4.46957 3 5 3H9" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d="M16 17L21 12L16 7" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d="M21 12H9" stroke={color} strokeWidth={2} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+// Moon / Tema escuro
+export function MoonIcon({ size = 24, color = '#64748B' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+// Sun / Tema claro
+export function SunIcon({ size = 24, color = '#F59E0B' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx="12" cy="12" r="5" stroke={color} strokeWidth={2} />
+      <Path d="M12 1V3M12 21V23M4.22 4.22L5.64 5.64M18.36 18.36L19.78 19.78M1 12H3M21 12H23M4.22 19.78L5.64 18.36M18.36 5.64L19.78 4.22" stroke={color} strokeWidth={2} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+// Palette / Temas
+export function PaletteIcon({ size = 24, color = '#6366F1' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22C12.8284 22 13.5 21.3284 13.5 20.5C13.5 20.1216 13.3564 19.7716 13.1068 19.5068C12.857 19.2417 12.678 18.8917 12.678 18.5C12.678 17.6716 13.3496 17 14.178 17H16C19.3137 17 22 14.3137 22 11C22 6.02944 17.5228 2 12 2Z" stroke={color} strokeWidth={2} />
+      <Circle cx="7.5" cy="11.5" r="1.5" fill={color} />
+      <Circle cx="12" cy="7.5" r="1.5" fill={color} />
+      <Circle cx="16.5" cy="11.5" r="1.5" fill={color} />
+    </Svg>
+  );
+}
+
+// Share
+export function ShareIcon({ size = 24, color = '#64748B' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx="18" cy="5" r="3" stroke={color} strokeWidth={2} />
+      <Circle cx="6" cy="12" r="3" stroke={color} strokeWidth={2} />
+      <Circle cx="18" cy="19" r="3" stroke={color} strokeWidth={2} />
+      <Path d="M8.59 13.51L15.42 17.49" stroke={color} strokeWidth={2} />
+      <Path d="M15.41 6.51L8.59 10.49" stroke={color} strokeWidth={2} />
+    </Svg>
+  );
+}
+
+// Filter
+export function FilterIcon({ size = 24, color = '#64748B' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M22 3H2L10 12.46V19L14 21V12.46L22 3Z" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+// Search
+export function SearchIcon({ size = 24, color = '#64748B' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx="11" cy="11" r="8" stroke={color} strokeWidth={2} />
+      <Path d="M21 21L16.65 16.65" stroke={color} strokeWidth={2} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+// Receipt / Extrato
+export function ReceiptIcon({ size = 24, color = '#64748B' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M4 4V22L6 20L8 22L10 20L12 22L14 20L16 22L18 20L20 22V4C20 2.89543 19.1046 2 18 2H6C4.89543 2 4 2.89543 4 4Z" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d="M8 10H16" stroke={color} strokeWidth={2} strokeLinecap="round" />
+      <Path d="M8 14H12" stroke={color} strokeWidth={2} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+// Shopping Cart
+export function ShoppingCartIcon({ size = 24, color = '#F97316' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx="9" cy="21" r="1" stroke={color} strokeWidth={2} />
+      <Circle cx="20" cy="21" r="1" stroke={color} strokeWidth={2} />
+      <Path d="M1 1H5L7.68 14.39C7.77 14.83 8.02 15.22 8.38 15.5C8.74 15.78 9.19 15.92 9.64 15.88H19.4C19.85 15.92 20.3 15.78 20.66 15.5C21.02 15.22 21.27 14.83 21.36 14.39L23 6H6" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+// Gift / Presente
+export function GiftIcon({ size = 24, color = '#EC4899' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Rect x="3" y="8" width="18" height="14" rx="2" stroke={color} strokeWidth={2} />
+      <Path d="M12 8V22" stroke={color} strokeWidth={2} />
+      <Path d="M3 12H21" stroke={color} strokeWidth={2} />
+      <Path d="M7.5 8C6.30653 8 5.16193 7.52589 4.31802 6.68198C3.47411 5.83807 3 4.69347 3 3.5C3 3.5 7 3.5 8.5 5C10 6.5 12 8 12 8C12 8 10 6.5 10 4.5C10 2.5 12 2 12 2C12 2 14 2.5 14 4.5C14 6.5 12 8 12 8C12 8 14 6.5 15.5 5C17 3.5 21 3.5 21 3.5C21 4.69347 20.5259 5.83807 19.682 6.68198C18.8381 7.52589 17.6935 8 16.5 8" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+// Alert / Alerta
+export function AlertIcon({ size = 24, color = '#EF4444' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M12 9V13" stroke={color} strokeWidth={2} strokeLinecap="round" />
+      <Circle cx="12" cy="17" r="1" fill={color} />
+      <Path d="M10.29 3.86L1.82 18C1.64 18.31 1.55 18.67 1.55 19.03C1.56 19.39 1.66 19.75 1.85 20.06C2.04 20.37 2.31 20.62 2.63 20.8C2.95 20.97 3.31 21.06 3.68 21.05H20.32C20.69 21.06 21.05 20.97 21.37 20.8C21.69 20.62 21.96 20.37 22.15 20.06C22.34 19.75 22.44 19.39 22.45 19.03C22.45 18.67 22.36 18.31 22.18 18L13.71 3.86C13.52 3.56 13.26 3.31 12.95 3.14C12.64 2.97 12.29 2.88 11.94 2.88C11.59 2.88 11.24 2.97 10.93 3.14C10.62 3.31 10.36 3.56 10.17 3.86H10.29Z" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+// Shield / Proteção
+export function ShieldIcon({ size = 24, color = '#10B981' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M12 22C12 22 20 18 20 12V5L12 2L4 5V12C4 18 12 22 12 22Z" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d="M9 12L11 14L15 10" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+// Edit / Editar
+export function EditIcon({ size = 24, color = '#64748B' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M18.5 2.50001C18.8978 2.10219 19.4374 1.87869 20 1.87869C20.5626 1.87869 21.1022 2.10219 21.5 2.50001C21.8978 2.89784 22.1213 3.4374 22.1213 4.00001C22.1213 4.56262 21.8978 5.10219 21.5 5.50001L12 15L8 16L9 12L18.5 2.50001Z"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+// CheckCircle / Sucesso
+export function CheckCircleIcon({ size = 24, color = '#10B981' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx="12" cy="12" r="10" stroke={color} strokeWidth={2} />
+      <Path d="M9 12L11 14L15 10" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+// Trash / Lixeira
+export function TrashIcon({ size = 24, color = '#EF4444' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M3 6H5H21" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+      <Path d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+// ChevronDown / Seta para baixo
+export function ChevronDownIcon({ size = 24, color = '#64748B' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M6 9L12 15L18 9" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+// PiggyBank / Cofrinho
+export function PiggyBankIcon({ size = 24, color = '#EC4899' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M19 5C17.89 5 17 5.89 17 7V8H7C4.24 8 2 10.24 2 13C2 15.76 4.24 18 7 18H7.17L6.58 19.17C6.38 19.57 6.5 20.06 6.85 20.32C7.14 20.54 7.53 20.54 7.82 20.32L10 18H14L16.18 20.32C16.47 20.54 16.86 20.54 17.15 20.32C17.5 20.06 17.62 19.57 17.42 19.17L16.83 18H17C19.76 18 22 15.76 22 13V7C22 5.89 21.11 5 20 5H19Z" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+      <Circle cx="14" cy="12" r="1" fill={color} />
+      <Path d="M2 13H4" stroke={color} strokeWidth={2} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+// Clipboard / Notas
+export function ClipboardIcon({ size = 24, color = '#64748B' }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Rect x="5" y="2" width="14" height="20" rx="2" stroke={color} strokeWidth={2} />
+      <Path d="M9 2V4C9 4.55228 9.44772 5 10 5H14C14.5523 5 15 4.55228 15 4V2" stroke={color} strokeWidth={2} />
+      <Path d="M9 12H15" stroke={color} strokeWidth={2} strokeLinecap="round" />
+      <Path d="M9 16H13" stroke={color} strokeWidth={2} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
 // Componente de ícone circular com fundo
 interface CircleIconProps extends IconProps {
   Icon: React.ComponentType<IconProps>;
@@ -401,6 +714,53 @@ export function CircleIcon({ Icon, size = 40, color, backgroundColor = '#EEF2FF'
       <Icon size={size * 0.5} color={color} />
     </View>
   );
+}
+
+// Tipo de nome de ícone para categorias (definido inline para evitar dependência circular)
+export type IconNameType =
+  | 'utensils' | 'shopping-cart' | 'car' | 'house' | 'heart'
+  | 'gamepad' | 'shopping-bag' | 'graduation-cap' | 'briefcase'
+  | 'fuel' | 'credit-card' | 'dollar' | 'trending-up' | 'gift'
+  | 'receipt' | 'target' | 'zap' | 'wallet';
+
+type IconName =
+  | 'utensils' | 'shopping-cart' | 'car' | 'house' | 'heart'
+  | 'gamepad' | 'shopping-bag' | 'graduation-cap' | 'briefcase'
+  | 'fuel' | 'credit-card' | 'dollar' | 'trending-up' | 'gift'
+  | 'receipt' | 'target' | 'zap' | 'wallet';
+
+// Mapeamento de IconName para componente de ícone
+const iconMap: Record<IconName, React.ComponentType<IconProps>> = {
+  'utensils': UtensilsIcon,
+  'shopping-cart': ShoppingCartIcon,
+  'car': CarIcon,
+  'house': HouseIcon,
+  'heart': HeartIcon,
+  'gamepad': GamepadIcon,
+  'shopping-bag': ShoppingBagIcon,
+  'graduation-cap': GraduationCapIcon,
+  'briefcase': BriefcaseIcon,
+  'fuel': FuelIcon,
+  'credit-card': CreditCardIcon,
+  'dollar': DollarIcon,
+  'trending-up': TrendingUpIcon,
+  'gift': GiftIcon,
+  'receipt': ReceiptIcon,
+  'target': TargetIcon,
+  'zap': ZapIcon,
+  'wallet': WalletIcon,
+};
+
+// Componente CategoryIcon que renderiza o ícone baseado no nome
+interface CategoryIconProps {
+  name: IconName;
+  size?: number;
+  color?: string;
+}
+
+export function CategoryIcon({ name, size = 24, color }: CategoryIconProps) {
+  const IconComponent = iconMap[name] || ReceiptIcon;
+  return <IconComponent size={size} color={color} />;
 }
 
 const styles = StyleSheet.create({

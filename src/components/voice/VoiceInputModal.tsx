@@ -1,5 +1,5 @@
 /**
- * Modal de Entrada por Voz
+ * Modal de Entrada por Voz - Design moderno banking
  * Permite criar transações usando linguagem natural
  */
 
@@ -21,6 +21,16 @@ import { useTheme } from '../../contexts/ThemeContext';
 import { spacing, borderRadius } from '../../constants/spacing';
 import { parseVoiceCommand, VOICE_EXAMPLES } from '../../services/voiceParser';
 import { getCategoryById } from '../../constants/categories';
+import {
+  MicrophoneIcon,
+  XIcon,
+  CheckIcon,
+  ArrowUpIcon,
+  ArrowDownIcon,
+  LightbulbIcon,
+  CategoryIcon,
+  AlertIcon,
+} from '../ui/Icons';
 
 interface VoiceInputModalProps {
   visible: boolean;
@@ -98,7 +108,7 @@ export function VoiceInputModal({ visible, onClose, onSave }: VoiceInputModalPro
         {/* Header */}
         <View style={[styles.header, { borderBottomColor: theme.colors.border }]}>
           <Pressable onPress={handleClose} style={styles.closeButton}>
-            <Text style={{ color: theme.colors.textSecondary, fontSize: 20 }}>✕</Text>
+            <XIcon size={24} color={theme.colors.textSecondary} />
           </Pressable>
           <Text preset="h4" style={{ color: theme.colors.text }}>Entrada Rápida</Text>
           <View style={styles.placeholder} />
@@ -112,8 +122,8 @@ export function VoiceInputModal({ visible, onClose, onSave }: VoiceInputModalPro
         >
           {/* Ícone de voz */}
           <View style={styles.voiceSection}>
-            <View style={[styles.voiceIcon, { backgroundColor: theme.colors.primaryLight + '30' }]}>
-              <Text style={styles.voiceEmoji}>🎤</Text>
+            <View style={[styles.voiceIcon, { backgroundColor: theme.colors.primary + '15' }]}>
+              <MicrophoneIcon size={40} color={theme.colors.primary} />
             </View>
             <Text preset="bodySmall" color={theme.colors.textSecondary} center>
               Digite como você diria em voz alta
@@ -182,8 +192,13 @@ export function VoiceInputModal({ visible, onClose, onSave }: VoiceInputModalPro
                     styles.typeBadge,
                     { backgroundColor: parsedResult.type === 'income' ? theme.colors.success : theme.colors.danger }
                   ]}>
-                    <Text preset="caption" color="#FFFFFF">
-                      {parsedResult.type === 'income' ? '↑ Receita' : '↓ Despesa'}
+                    {parsedResult.type === 'income' ? (
+                      <ArrowUpIcon size={12} color="#FFFFFF" />
+                    ) : (
+                      <ArrowDownIcon size={12} color="#FFFFFF" />
+                    )}
+                    <Text preset="caption" color="#FFFFFF" style={{ marginLeft: 4 }}>
+                      {parsedResult.type === 'income' ? 'Receita' : 'Despesa'}
                     </Text>
                   </View>
                 </View>
@@ -191,14 +206,18 @@ export function VoiceInputModal({ visible, onClose, onSave }: VoiceInputModalPro
                 {/* Valor */}
                 <View style={styles.previewRow}>
                   <Text preset="caption" color={theme.colors.textSecondary}>Valor:</Text>
-                  <Text
-                    preset="label"
-                    color={parsedResult.amount !== null ? theme.colors.text : theme.colors.danger}
-                  >
-                    {parsedResult.amount !== null
-                      ? `R$ ${parsedResult.amount.toFixed(2).replace('.', ',')}`
-                      : '❌ Não detectado'}
-                  </Text>
+                  {parsedResult.amount !== null ? (
+                    <Text preset="label" color={theme.colors.text}>
+                      R$ {parsedResult.amount.toFixed(2).replace('.', ',')}
+                    </Text>
+                  ) : (
+                    <View style={styles.errorRow}>
+                      <AlertIcon size={14} color={theme.colors.danger} />
+                      <Text preset="caption" color={theme.colors.danger} style={{ marginLeft: 4 }}>
+                        Não detectado
+                      </Text>
+                    </View>
+                  )}
                 </View>
 
                 {/* Categoria */}
@@ -206,15 +225,18 @@ export function VoiceInputModal({ visible, onClose, onSave }: VoiceInputModalPro
                   <Text preset="caption" color={theme.colors.textSecondary}>Categoria:</Text>
                   {category ? (
                     <View style={styles.categoryBadge}>
-                      <Text style={{ fontSize: 14 }}>{category.icon}</Text>
-                      <Text preset="bodySmall" color={theme.colors.text}>
+                      <CategoryIcon name={category.icon} size={16} color={category.color} />
+                      <Text preset="bodySmall" color={theme.colors.text} style={{ marginLeft: 6 }}>
                         {category.name}
                       </Text>
                     </View>
                   ) : (
-                    <Text preset="bodySmall" color={theme.colors.danger}>
-                      ❌ Não detectada
-                    </Text>
+                    <View style={styles.errorRow}>
+                      <AlertIcon size={14} color={theme.colors.danger} />
+                      <Text preset="caption" color={theme.colors.danger} style={{ marginLeft: 4 }}>
+                        Não detectada
+                      </Text>
+                    </View>
                   )}
                 </View>
 
@@ -232,9 +254,12 @@ export function VoiceInputModal({ visible, onClose, onSave }: VoiceInputModalPro
           {/* Exemplos */}
           {!inputText && (
             <View style={styles.examplesSection}>
-              <Text preset="label" color={theme.colors.textSecondary} style={styles.examplesTitle}>
-                💡 Exemplos
-              </Text>
+              <View style={styles.examplesTitleRow}>
+                <LightbulbIcon size={18} color={theme.colors.warning} />
+                <Text preset="label" color={theme.colors.textSecondary} style={{ marginLeft: 8 }}>
+                  Exemplos
+                </Text>
+              </View>
               <View style={styles.examplesGrid}>
                 {VOICE_EXAMPLES.map((example, index) => (
                   <Pressable
@@ -257,14 +282,24 @@ export function VoiceInputModal({ visible, onClose, onSave }: VoiceInputModalPro
 
         {/* Botão Salvar */}
         <View style={[styles.footer, { borderTopColor: theme.colors.border }]}>
-          <Button
-            title={isValid ? "Salvar Transação" : "Complete os dados"}
-            variant={parsedResult?.type === 'income' ? 'success' : 'primary'}
-            fullWidth
+          <Pressable
+            style={({ pressed }) => [
+              styles.saveButton,
+              {
+                backgroundColor: isValid
+                  ? (pressed ? theme.colors.primaryDark || theme.colors.primary : theme.colors.primary)
+                  : theme.colors.backgroundTertiary,
+                opacity: !isValid ? 0.6 : 1,
+              },
+            ]}
             onPress={handleSave}
             disabled={!isValid}
-            leftIcon={isValid ? "✓" : ""}
-          />
+          >
+            {isValid && <CheckIcon size={20} color="#FFFFFF" />}
+            <Text style={[styles.saveButtonText, { marginLeft: isValid ? 8 : 0 }]}>
+              {isValid ? "Salvar Transação" : "Complete os dados"}
+            </Text>
+          </Pressable>
         </View>
       </KeyboardAvoidingView>
     </Modal>
@@ -307,9 +342,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  voiceEmoji: {
-    fontSize: 40,
-  },
   inputSection: {
     gap: spacing[2],
   },
@@ -340,7 +372,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing[2],
   },
+  errorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   typeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: spacing[2],
     paddingVertical: spacing[0.5],
     borderRadius: borderRadius.full,
@@ -348,13 +386,13 @@ const styles = StyleSheet.create({
   categoryBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing[1],
   },
   examplesSection: {
     gap: spacing[3],
   },
-  examplesTitle: {
-    marginLeft: spacing[1],
+  examplesTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   examplesGrid: {
     flexDirection: 'row',
@@ -370,5 +408,17 @@ const styles = StyleSheet.create({
     padding: spacing[4],
     paddingBottom: spacing[8],
     borderTopWidth: 1,
+  },
+  saveButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing[4],
+    borderRadius: borderRadius.lg,
+  },
+  saveButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

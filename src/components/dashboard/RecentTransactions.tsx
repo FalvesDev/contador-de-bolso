@@ -1,5 +1,5 @@
 /**
- * Lista das transações recentes
+ * Lista das transações recentes - Design moderno banking
  */
 
 import React from 'react';
@@ -9,6 +9,7 @@ import { Card } from '../ui/Card';
 import { useTheme } from '../../contexts/ThemeContext';
 import { spacing, borderRadius } from '../../constants/spacing';
 import { getCategoryById } from '../../constants/categories';
+import { CategoryIcon, ClipboardIcon } from '../ui/Icons';
 
 export interface Transaction {
   id: string;
@@ -17,6 +18,14 @@ export interface Transaction {
   type: 'income' | 'expense';
   categoryId: string;
   date: Date;
+  // Campos para parcelamento
+  isInstallment?: boolean;
+  installmentNumber?: number;
+  totalInstallments?: number;
+  installmentGroupId?: string;
+  // Campos para recorrência
+  isRecurring?: boolean;
+  recurringType?: 'daily' | 'weekly' | 'monthly' | 'yearly';
 }
 
 interface TransactionItemProps {
@@ -29,8 +38,9 @@ interface TransactionItemProps {
 
 function TransactionItem({ transaction, onPress, textColor, secondaryColor, pressedColor }: TransactionItemProps) {
   const category = getCategoryById(transaction.categoryId);
-  const icon = category?.icon || '📦';
+  const iconName = category?.icon || 'receipt';
   const categoryName = category?.name || 'Outros';
+  const iconColor = category?.color || '#64748B';
 
   const formatDate = (date: Date) => {
     const today = new Date();
@@ -55,15 +65,31 @@ function TransactionItem({ transaction, onPress, textColor, secondaryColor, pres
       ]}
     >
       {/* Ícone */}
-      <View style={[styles.iconContainer, { backgroundColor: category?.color + '20' }]}>
-        <Text style={styles.icon}>{icon}</Text>
+      <View style={[styles.iconContainer, { backgroundColor: iconColor + '15' }]}>
+        <CategoryIcon name={iconName} size={20} color={iconColor} />
       </View>
 
       {/* Info */}
       <View style={styles.info}>
-        <Text preset="body" numberOfLines={1} style={{ color: textColor }}>
-          {transaction.description}
-        </Text>
+        <View style={styles.descriptionRow}>
+          <Text preset="body" numberOfLines={1} style={{ color: textColor, flex: 1 }}>
+            {transaction.description}
+          </Text>
+          {transaction.isInstallment && (
+            <View style={[styles.installmentBadge, { backgroundColor: iconColor + '20' }]}>
+              <Text style={[styles.installmentText, { color: iconColor }]}>
+                {transaction.installmentNumber}/{transaction.totalInstallments}
+              </Text>
+            </View>
+          )}
+          {transaction.isRecurring && (
+            <View style={[styles.recurringBadge, { backgroundColor: '#3B82F6' + '20' }]}>
+              <Text style={[styles.installmentText, { color: '#3B82F6' }]}>
+                Fixo
+              </Text>
+            </View>
+          )}
+        </View>
         <Text preset="caption" color={secondaryColor}>
           {categoryName} • {formatDate(transaction.date)}
         </Text>
@@ -100,7 +126,7 @@ export function RecentTransactions({
         {onSeeAll && (
           <Pressable onPress={onSeeAll}>
             <Text preset="label" color={theme.colors.primary}>
-              Ver todas →
+              Ver todas
             </Text>
           </Pressable>
         )}
@@ -110,7 +136,9 @@ export function RecentTransactions({
       <Card variant="elevated" padding="none" style={{ ...styles.card, backgroundColor: theme.colors.card }}>
         {transactions.length === 0 ? (
           <View style={styles.empty}>
-            <Text style={styles.emptyIcon}>📝</Text>
+            <View style={[styles.emptyIconContainer, { backgroundColor: theme.colors.backgroundTertiary }]}>
+              <ClipboardIcon size={32} color={theme.colors.textSecondary} />
+            </View>
             <Text preset="body" color={theme.colors.textSecondary} center>
               Nenhuma transação ainda
             </Text>
@@ -166,12 +194,28 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: spacing[3],
   },
-  icon: {
-    fontSize: 20,
-  },
   info: {
     flex: 1,
     marginRight: spacing[2],
+  },
+  descriptionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  installmentBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  recurringBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  installmentText: {
+    fontSize: 10,
+    fontWeight: '600',
   },
   divider: {
     height: 1,
@@ -181,8 +225,12 @@ const styles = StyleSheet.create({
     padding: spacing[8],
     alignItems: 'center',
   },
-  emptyIcon: {
-    fontSize: 48,
+  emptyIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: spacing[3],
   },
 });

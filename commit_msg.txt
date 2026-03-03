@@ -1,0 +1,21 @@
+Correções Implementadas
+1. HomeScreen (HomeScreen.tsx)
+Adicionados props: budgets, goals, unreadNotifications, onNotificationsPress, onEditBudget, onAddBudget
+Badge de notificações no botão do sino
+Integração com BudgetManager e GoalsCard
+2. ReportsScreen (ReportsScreen.tsx)
+Removido SAMPLE_GOALS - agora recebe goals como prop
+Adicionados props: budgets, goals, onEditBudget, onAddBudget
+BudgetManager agora usa dados reais de orçamento
+3. App.tsx (App.tsx)
+Corrigido deleteGoal → removeGoal (nome correto do hook)
+Todas as telas recebem os dados corretos dos hooks
+4. Lógica de Orçamento por Mês (BudgetManager.tsx)
+Filtra transações pelo mês selecionado corretamente
+Calcula gastos por categoria do mês atual
+Mostra alertas para categorias excedidas ou próximas do limite
+5. Parcelas Futuras (FutureExpenses.tsx)
+Projeta gastos para os próximos 6 meses
+Identifica parcelas e gastos recorrentes separadamente
+Contagem correta de compromissos ativos
+O sistema agora está completamente integrado com persistência local via AsyncStorage.

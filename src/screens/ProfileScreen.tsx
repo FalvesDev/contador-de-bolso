@@ -1,41 +1,59 @@
 /**
- * Tela de Perfil - Configurações do app
+ * Tela de Perfil - Design moderno banking
  */
 
 import React, { useState } from 'react';
-import { View, ScrollView, StyleSheet, Pressable, Alert, ActivityIndicator } from 'react-native';
+import { View, ScrollView, StyleSheet, Pressable, Alert } from 'react-native';
 import { Text } from '../components/ui/Text';
 import { Card } from '../components/ui/Card';
-import { Button } from '../components/ui/Button';
 import { ThemeSelector } from '../components/settings/ThemeSelector';
 import { useTheme } from '../contexts/ThemeContext';
 import { spacing, borderRadius } from '../constants/spacing';
 import { exportToCSV, shareTextSummary } from '../services/exportService';
 import { getCategoryById } from '../constants/categories';
 import { Transaction } from '../components/dashboard/RecentTransactions';
+import {
+  UserIcon,
+  WalletIcon,
+  ReceiptIcon,
+  BellIcon,
+  DownloadIcon,
+  ShareIcon,
+  CreditCardIcon,
+  SettingsIcon,
+  ChevronRightIcon,
+  LogOutIcon,
+  HeartIcon,
+  ShieldIcon,
+  PaletteIcon,
+} from '../components/ui/Icons';
 
 interface ProfileScreenProps {
   onLogout?: () => void;
   transactions?: Transaction[];
 }
 
-function MenuItem({
-  icon,
-  label,
-  value,
-  onPress,
-  textColor,
-  chevronColor,
-  pressedColor,
-}: {
-  icon: string;
+interface MenuItemProps {
+  Icon: React.ComponentType<{ size?: number; color?: string }>;
+  iconColor?: string;
   label: string;
   value?: string;
   onPress?: () => void;
   textColor: string;
-  chevronColor: string;
+  secondaryColor: string;
   pressedColor: string;
-}) {
+}
+
+function MenuItem({
+  Icon,
+  iconColor,
+  label,
+  value,
+  onPress,
+  textColor,
+  secondaryColor,
+  pressedColor,
+}: MenuItemProps) {
   return (
     <Pressable
       style={({ pressed }) => [
@@ -45,16 +63,18 @@ function MenuItem({
       onPress={onPress}
     >
       <View style={styles.menuItemLeft}>
-        <Text style={styles.menuIcon}>{icon}</Text>
+        <View style={[styles.menuIconContainer, { backgroundColor: (iconColor || secondaryColor) + '15' }]}>
+          <Icon size={20} color={iconColor || secondaryColor} />
+        </View>
         <Text preset="body" style={{ color: textColor }}>{label}</Text>
       </View>
       <View style={styles.menuItemRight}>
         {value && (
-          <Text preset="caption" style={{ color: chevronColor }}>
+          <Text preset="caption" style={{ color: secondaryColor }}>
             {value}
           </Text>
         )}
-        <Text style={[styles.chevron, { color: chevronColor }]}>›</Text>
+        <ChevronRightIcon size={20} color={secondaryColor} />
       </View>
     </Pressable>
   );
@@ -64,6 +84,15 @@ export function ProfileScreen({ onLogout, transactions = [] }: ProfileScreenProp
   const { theme } = useTheme();
   const [isThemeSelectorVisible, setThemeSelectorVisible] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+
+  // Modo offline - valores fixos
+  const userName = 'Usuário';
+  const userEmail = 'Modo offline';
+  const isAuthenticated = false;
+
+  const handleLogout = () => {
+    Alert.alert('Info', 'Login será implementado em breve!');
+  };
 
   const getCategoryName = (id: string) => {
     const cat = getCategoryById(id);
@@ -107,15 +136,15 @@ export function ProfileScreen({ onLogout, transactions = [] }: ProfileScreenProp
         {/* Avatar e Info */}
         <View style={styles.profileSection}>
           <View style={[styles.avatar, { backgroundColor: theme.colors.primaryLight }]}>
-            <Text style={styles.avatarText}>👤</Text>
+            <UserIcon size={40} color={theme.colors.primary} />
           </View>
-          <Text preset="h4" style={[styles.name, { color: theme.colors.text }]}>Usuário</Text>
+          <Text preset="h4" style={[styles.name, { color: theme.colors.text }]}>{userName}</Text>
           <Text preset="caption" style={{ color: theme.colors.textSecondary }}>
-            usuario@email.com
+            {userEmail}
           </Text>
-          <View style={[styles.planBadge, { backgroundColor: theme.colors.backgroundTertiary }]}>
+          <View style={[styles.planBadge, { backgroundColor: theme.colors.primary + '15' }]}>
             <Text preset="caption" style={{ color: theme.colors.primary }}>
-              Plano Gratuito
+              {isAuthenticated ? 'Plano Gratuito' : 'Modo Offline'}
             </Text>
           </View>
         </View>
@@ -127,12 +156,13 @@ export function ProfileScreen({ onLogout, transactions = [] }: ProfileScreenProp
           </Text>
           <Card variant="elevated" padding="none" style={{ backgroundColor: theme.colors.card }}>
             <MenuItem
-              icon={theme.icon}
+              Icon={PaletteIcon}
+              iconColor={theme.colors.primary}
               label="Tema"
               value={theme.name}
               onPress={() => setThemeSelectorVisible(true)}
               textColor={theme.colors.text}
-              chevronColor={theme.colors.textSecondary}
+              secondaryColor={theme.colors.textSecondary}
               pressedColor={theme.colors.backgroundTertiary}
             />
           </Card>
@@ -145,32 +175,35 @@ export function ProfileScreen({ onLogout, transactions = [] }: ProfileScreenProp
           </Text>
           <Card variant="elevated" padding="none" style={{ backgroundColor: theme.colors.card }}>
             <MenuItem
-              icon="💰"
+              Icon={WalletIcon}
+              iconColor={theme.colors.success}
               label="Orçamento Mensal"
               value="R$ 5.000"
               onPress={() => {}}
               textColor={theme.colors.text}
-              chevronColor={theme.colors.textSecondary}
+              secondaryColor={theme.colors.textSecondary}
               pressedColor={theme.colors.backgroundTertiary}
             />
             <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
             <MenuItem
-              icon="🏷️"
+              Icon={ReceiptIcon}
+              iconColor={theme.colors.warning}
               label="Categorias"
               value="45 categorias"
               onPress={() => {}}
               textColor={theme.colors.text}
-              chevronColor={theme.colors.textSecondary}
+              secondaryColor={theme.colors.textSecondary}
               pressedColor={theme.colors.backgroundTertiary}
             />
             <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
             <MenuItem
-              icon="🔔"
+              Icon={BellIcon}
+              iconColor={'#3B82F6'}
               label="Notificações"
               value="Ativadas"
               onPress={() => {}}
               textColor={theme.colors.text}
-              chevronColor={theme.colors.textSecondary}
+              secondaryColor={theme.colors.textSecondary}
               pressedColor={theme.colors.backgroundTertiary}
             />
           </Card>
@@ -183,41 +216,45 @@ export function ProfileScreen({ onLogout, transactions = [] }: ProfileScreenProp
           </Text>
           <Card variant="elevated" padding="none" style={{ backgroundColor: theme.colors.card }}>
             <MenuItem
-              icon="📤"
+              Icon={DownloadIcon}
+              iconColor={theme.colors.primary}
               label="Exportar CSV"
               value={isExporting ? 'Exportando...' : `${transactions.length} itens`}
               onPress={handleExportCSV}
               textColor={theme.colors.text}
-              chevronColor={theme.colors.textSecondary}
+              secondaryColor={theme.colors.textSecondary}
               pressedColor={theme.colors.backgroundTertiary}
             />
             <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
             <MenuItem
-              icon="📊"
+              Icon={ShareIcon}
+              iconColor={theme.colors.secondary || '#06B6D4'}
               label="Compartilhar resumo"
               onPress={handleShareSummary}
               textColor={theme.colors.text}
-              chevronColor={theme.colors.textSecondary}
+              secondaryColor={theme.colors.textSecondary}
               pressedColor={theme.colors.backgroundTertiary}
             />
             <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
             <MenuItem
-              icon="🏦"
+              Icon={CreditCardIcon}
+              iconColor={theme.colors.success}
               label="Conectar banco"
               value="Em breve"
               onPress={() => {}}
               textColor={theme.colors.text}
-              chevronColor={theme.colors.textSecondary}
+              secondaryColor={theme.colors.textSecondary}
               pressedColor={theme.colors.backgroundTertiary}
             />
             <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
             <MenuItem
-              icon="☁️"
+              Icon={SettingsIcon}
+              iconColor={theme.colors.textSecondary}
               label="Backup na nuvem"
               value="Em breve"
               onPress={() => {}}
               textColor={theme.colors.text}
-              chevronColor={theme.colors.textSecondary}
+              secondaryColor={theme.colors.textSecondary}
               pressedColor={theme.colors.backgroundTertiary}
             />
           </Card>
@@ -230,29 +267,32 @@ export function ProfileScreen({ onLogout, transactions = [] }: ProfileScreenProp
           </Text>
           <Card variant="elevated" padding="none" style={{ backgroundColor: theme.colors.card }}>
             <MenuItem
-              icon="ℹ️"
+              Icon={SettingsIcon}
+              iconColor={theme.colors.textSecondary}
               label="Versão do app"
               value="1.0.0"
               textColor={theme.colors.text}
-              chevronColor={theme.colors.textSecondary}
+              secondaryColor={theme.colors.textSecondary}
               pressedColor={theme.colors.backgroundTertiary}
             />
             <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
             <MenuItem
-              icon="📜"
+              Icon={ReceiptIcon}
+              iconColor={theme.colors.textSecondary}
               label="Termos de uso"
               onPress={() => {}}
               textColor={theme.colors.text}
-              chevronColor={theme.colors.textSecondary}
+              secondaryColor={theme.colors.textSecondary}
               pressedColor={theme.colors.backgroundTertiary}
             />
             <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
             <MenuItem
-              icon="🔒"
+              Icon={ShieldIcon}
+              iconColor={theme.colors.success}
               label="Privacidade"
               onPress={() => {}}
               textColor={theme.colors.text}
-              chevronColor={theme.colors.textSecondary}
+              secondaryColor={theme.colors.textSecondary}
               pressedColor={theme.colors.backgroundTertiary}
             />
           </Card>
@@ -260,20 +300,31 @@ export function ProfileScreen({ onLogout, transactions = [] }: ProfileScreenProp
 
         {/* Logout */}
         <View style={styles.logoutSection}>
-          <Button
-            title="Sair da conta"
-            variant="outline"
-            fullWidth
-            leftIcon="🚪"
-            onPress={onLogout}
-          />
+          <Pressable
+            style={({ pressed }) => [
+              styles.logoutButton,
+              {
+                backgroundColor: pressed ? theme.colors.danger + '15' : theme.colors.card,
+                borderColor: theme.colors.danger + '30',
+              },
+            ]}
+            onPress={handleLogout}
+          >
+            <LogOutIcon size={20} color={theme.colors.danger} />
+            <Text style={{ color: theme.colors.danger, fontSize: 16, fontWeight: '500', marginLeft: 12 }}>
+              {isAuthenticated ? 'Sair da conta' : 'Fazer login'}
+            </Text>
+          </Pressable>
         </View>
 
         {/* Footer */}
         <View style={styles.footer}>
-          <Text preset="caption" style={{ color: theme.colors.textTertiary }} center>
-            Feito com 💜 para controlar suas finanças
-          </Text>
+          <View style={styles.footerContent}>
+            <HeartIcon size={14} color={theme.colors.primary} />
+            <Text preset="caption" style={{ color: theme.colors.textTertiary, marginLeft: 6 }}>
+              Feito para controlar suas finanças
+            </Text>
+          </View>
         </View>
 
         <View style={styles.spacer} />
@@ -308,9 +359,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: spacing[3],
   },
-  avatarText: {
-    fontSize: 40,
-  },
   name: {
     marginBottom: spacing[1],
   },
@@ -339,28 +387,42 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing[3],
   },
-  menuIcon: {
-    fontSize: 20,
+  menuIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   menuItemRight: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing[2],
   },
-  chevron: {
-    fontSize: 20,
-  },
   divider: {
     height: 1,
-    marginLeft: spacing[4] + 20 + spacing[3],
+    marginLeft: spacing[4] + 36 + spacing[3],
   },
   logoutSection: {
     marginTop: spacing[8],
     paddingHorizontal: spacing[4],
   },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing[4],
+    borderRadius: borderRadius.lg,
+    borderWidth: 1,
+  },
   footer: {
     marginTop: spacing[6],
     paddingHorizontal: spacing[4],
+    alignItems: 'center',
+  },
+  footerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   spacer: {
     height: spacing[12],
