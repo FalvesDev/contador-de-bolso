@@ -7,6 +7,7 @@ import { View, Pressable, StyleSheet, Platform } from 'react-native';
 import { Text } from '../ui/Text';
 import { HomeIcon, ListIcon, ChartBarIcon, UserIcon, PlusIcon } from '../ui/Icons';
 import { useTheme } from '../../contexts/ThemeContext';
+import * as Haptics from 'expo-haptics';
 
 // Padding maior para evitar sobreposição com botões de navegação Android
 const ANDROID_BOTTOM_PADDING = Platform.OS === 'android' ? 32 : 0;
@@ -31,7 +32,13 @@ interface TabItemProps {
 
 function TabItem({ Icon, label, isActive, onPress, activeColor, inactiveColor }: TabItemProps) {
   return (
-    <Pressable style={styles.tabItem} onPress={onPress}>
+    <Pressable
+      style={styles.tabItem}
+      onPress={() => {
+        Haptics.selectionAsync();
+        onPress();
+      }}
+    >
       <Icon size={22} color={isActive ? activeColor : inactiveColor} />
       <Text
         style={[
@@ -57,8 +64,14 @@ function AddButton({ onPress, onLongPress, backgroundColor }: {
         { backgroundColor },
         pressed && styles.addButtonPressed,
       ]}
-      onPress={onPress}
-      onLongPress={onLongPress}
+      onPress={() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        onPress();
+      }}
+      onLongPress={() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+        if (onLongPress) onLongPress();
+      }}
       delayLongPress={400}
     >
       <PlusIcon size={26} color="#FFFFFF" />

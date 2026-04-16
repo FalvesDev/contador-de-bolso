@@ -35,16 +35,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Carregar sessão inicial
   useEffect(() => {
     let mounted = true;
+    let subscription: { unsubscribe: () => void } | null = null;
 
     const init = async () => {
       await loadSession();
 
       // Listener para mudanças de autenticação (só se conectado)
       try {
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-          async (event, newSession) => {
+        const { data } = supabase.auth.onAuthStateChange(
+          async (_event, newSession) => {
             if (!mounted) return;
-            console.log('Auth state changed:', event);
             setSession(newSession);
             setUser(newSession?.user ?? null);
 
@@ -55,11 +55,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             }
           }
         );
-
-        return () => {
-          mounted = false;
-          subscription.unsubscribe();
-        };
+        subscription = data.subscription;
       } catch (error) {
         console.log('Auth listener error (offline)');
       }
@@ -69,6 +65,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     return () => {
       mounted = false;
+      subscription?.unsubscribe();
     };
   }, []);
 

@@ -114,7 +114,7 @@ export function useNotifications(): UseNotificationsReturn {
   };
 
   // Verificar orçamentos
-  const checkBudgets = (budgets: Budget[], transactions: Transaction[]) => {
+  const checkBudgets = useCallback((budgets: Budget[], transactions: Transaction[]) => {
     if (!settings.budgetAlerts) return;
 
     const today = new Date();
@@ -153,10 +153,10 @@ export function useNotifications(): UseNotificationsReturn {
         });
       }
     });
-  };
+  }, [settings]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Verificar metas
-  const checkGoals = (goals: Goal[]) => {
+  const checkGoals = useCallback((goals: Goal[]) => {
     if (!settings.goalAlerts) return;
 
     goals.forEach(goal => {
@@ -178,7 +178,7 @@ export function useNotifications(): UseNotificationsReturn {
         });
       }
     });
-  };
+  }, [settings]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Marcar como lida
   const markAsRead = async (id: string) => {

@@ -7,13 +7,17 @@ import {
   StyleSheet,
   View,
   StatusBar,
-  SafeAreaView,
+  SafeAreaView, // eslint-disable-line deprecation/deprecation
   Platform,
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const OFFLINE_MODE_KEY = '@ContadorDeBolso:offlineMode';
 
 import { ThemeProvider, useTheme } from './src/contexts/ThemeContext';
+import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import { Transaction } from './src/components/dashboard/RecentTransactions';
 import { TabBar, TabName } from './src/components/navigation/TabBar';
 import { AddTransactionModal } from './src/components/transaction/AddTransactionModal';
@@ -21,6 +25,14 @@ import { EditTransactionModal } from './src/components/transaction/EditTransacti
 import { VoiceInputModal } from './src/components/voice/VoiceInputModal';
 import { BudgetEditModal } from './src/components/budget/BudgetEditModal';
 import { NotificationsModal } from './src/components/notifications/NotificationsModal';
+import { AuthScreen } from './src/screens/AuthScreen';
+
+import * as Haptics from 'expo-haptics';
+import {
+  requestNotificationPermissions,
+  checkBudgetAlerts,
+  scheduleDailyReminder,
+} from './src/services/notificationsService';
 
 // Hooks
 import { useLocalTransactions } from './src/hooks/useLocalTransactions';
@@ -40,8 +52,24 @@ import { ProfileScreen } from './src/screens/ProfileScreen';
 
 function AppContent() {
   const { theme } = useTheme();
+  const { isAuthenticated, isLoading: authLoading, signOut, user, profile } = useAuth();
+  const [isOfflineMode, setIsOfflineMode] = useState(false);
+  const [offlineModeLoaded, setOfflineModeLoaded] = useState(false);
 
-  // Hooks de dados
+  // Persistir modo offline no AsyncStorage
+  useEffect(() => {
+    AsyncStorage.getItem(OFFLINE_MODE_KEY)
+      .then(val => { if (val === 'true') setIsOfflineMode(true); })
+      .catch(() => {})
+      .finally(() => setOfflineModeLoaded(true));
+  }, []);
+
+  const handleSetOfflineMode = async () => {
+    await AsyncStorage.setItem(OFFLINE_MODE_KEY, 'true').catch(() => {});
+    setIsOfflineMode(true);
+  };
+
+  // Hooks de dados (locais — sempre usados como fonte de verdade offline-first)
   const {
     transactions,
     isLoading: transactionsLoading,
@@ -49,6 +77,8 @@ function AppContent() {
     addInstallments,
     updateTransaction,
     deleteTransaction,
+    deleteInstallmentGroup,
+    updateInstallmentGroup,
   } = useLocalTransactions();
 
   const {
@@ -61,15 +91,11 @@ function AppContent() {
   const {
     goals,
     isLoading: goalsLoading,
-    addGoal,
-    updateGoal,
-    removeGoal,
   } = useGoals();
 
   const {
     notifications,
     unreadCount,
-    settings: notificationSettings,
     checkBudgets,
     checkGoals,
     markAsRead,
@@ -89,20 +115,52 @@ function AppContent() {
   const [editingBudgetCategoryId, setEditingBudgetCategoryId] = useState<string | undefined>();
   const [editingBudgetLimit, setEditingBudgetLimit] = useState<number | undefined>();
 
-  // Verificar orçamentos e metas quando transações mudam
+  // Pedir permissões de notificação ao iniciar + agendar lembrete diário
+  useEffect(() => {
+    requestNotificationPermissions().then(granted => {
+      if (granted) scheduleDailyReminder(20);
+    });
+  }, []);
+
+  // Verificar alertas de orçamento via notificação push quando transações mudam
+  useEffect(() => {
+    if (!transactionsLoading && !budgetsLoading && budgets.length > 0) {
+      checkBudgetAlerts(budgets, transactions);
+    }
+  }, [transactions, budgets, transactionsLoading, budgetsLoading]);
+
+  // Verificar orçamentos e metas nas notificações internas
   useEffect(() => {
     if (!transactionsLoading && !budgetsLoading) {
       checkBudgets(budgets, transactions);
     }
-  }, [transactions, budgets, transactionsLoading, budgetsLoading]);
+  }, [transactions, budgets, transactionsLoading, budgetsLoading, checkBudgets]);
 
   useEffect(() => {
     if (!goalsLoading) {
       checkGoals(goals);
     }
-  }, [goals, goalsLoading]);
+  }, [goals, goalsLoading, checkGoals]);
 
-  // Loading inicial
+  // ── Aguardar verificação de sessão e modo offline ─────
+  if (authLoading || !offlineModeLoaded) {
+    return (
+      <View style={[styles.loadingContainer, { backgroundColor: theme.colors.background }]}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+      </View>
+    );
+  }
+
+  // ── Mostrar tela de login se não autenticado e não escolheu modo offline ──
+  if (!isAuthenticated && !isOfflineMode) {
+    return (
+      <AuthScreen
+        onOfflineMode={handleSetOfflineMode}
+      />
+    );
+  }
+
+  // Loading de dados
   const isLoading = transactionsLoading || budgetsLoading || goalsLoading;
 
   if (isLoading) {
@@ -112,6 +170,8 @@ function AppContent() {
       </View>
     );
   }
+
+  // ── Handlers de transação ─────────────────────────────
 
   const handleSaveTransaction = async (newTransaction: {
     amount: number;
@@ -136,7 +196,7 @@ function AppContent() {
           },
           newTransaction.totalInstallments
         );
-
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         Alert.alert(
           'Parcelamento salvo!',
           `${newTransaction.totalInstallments}x de R$ ${newTransaction.amount.toFixed(2)} adicionadas.`
@@ -151,7 +211,7 @@ function AppContent() {
           isRecurring: true,
           recurringType: newTransaction.recurringType,
         });
-
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         Alert.alert(
           'Gasto fixo salvo!',
           `R$ ${newTransaction.amount.toFixed(2)} ${newTransaction.recurringType === 'monthly' ? 'mensal' : 'semanal'} adicionado.`
@@ -164,18 +224,20 @@ function AppContent() {
           description: newTransaction.description,
           date: newTransaction.date,
         });
-
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         Alert.alert(
           'Transação salva!',
           `${newTransaction.type === 'income' ? 'Receita' : 'Despesa'} de R$ ${newTransaction.amount.toFixed(2)} adicionada.`
         );
       }
     } catch (error) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert('Erro', 'Não foi possível salvar a transação.');
     }
   };
 
   const handleTransactionPress = (transaction: Transaction) => {
+    Haptics.selectionAsync();
     setSelectedTransaction(transaction);
     setIsEditModalVisible(true);
   };
@@ -183,7 +245,6 @@ function AppContent() {
   const handleUpdateTransaction = async (id: string, updates: Partial<Transaction>) => {
     try {
       await updateTransaction(id, updates);
-      Alert.alert('Sucesso', 'Transação atualizada!');
     } catch (error) {
       Alert.alert('Erro', 'Não foi possível atualizar a transação.');
     }
@@ -192,17 +253,13 @@ function AppContent() {
   const handleDeleteTransaction = async (id: string) => {
     try {
       await deleteTransaction(id);
-      Alert.alert('Sucesso', 'Transação excluída!');
     } catch (error) {
       Alert.alert('Erro', 'Não foi possível excluir a transação.');
     }
   };
 
-  const handleSeeAllTransactions = () => {
-    setActiveTab('transactions');
-  };
+  // ── Handlers de orçamento ─────────────────────────────
 
-  // Handlers de orçamento
   const handleEditBudget = (categoryId: string, currentLimit: number) => {
     setEditingBudgetCategoryId(categoryId);
     setEditingBudgetLimit(currentLimit);
@@ -235,6 +292,33 @@ function AppContent() {
     }
   };
 
+  // ── Logout ────────────────────────────────────────────
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Sair da conta',
+      isAuthenticated
+        ? 'Deseja sair? Seus dados locais serão mantidos.'
+        : 'Deseja voltar para a tela de login?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Sair',
+          style: 'destructive',
+          onPress: async () => {
+            if (isAuthenticated) {
+              await signOut();
+            }
+            await AsyncStorage.removeItem(OFFLINE_MODE_KEY).catch(() => {});
+            setIsOfflineMode(false);
+          },
+        },
+      ]
+    );
+  };
+
+  // ── Render ────────────────────────────────────────────
+
   const renderScreen = () => {
     switch (activeTab) {
       case 'home':
@@ -244,11 +328,9 @@ function AppContent() {
             budgets={budgets}
             goals={goals}
             unreadNotifications={unreadCount}
-            onSeeAllTransactions={handleSeeAllTransactions}
+            onSeeAllTransactions={() => setActiveTab('transactions')}
             onTransactionPress={handleTransactionPress}
             onNotificationsPress={() => setIsNotificationsVisible(true)}
-            onEditBudget={handleEditBudget}
-            onAddBudget={handleAddBudget}
           />
         );
       case 'transactions':
@@ -271,8 +353,11 @@ function AppContent() {
       case 'profile':
         return (
           <ProfileScreen
-            onLogout={() => Alert.alert('Logout', 'Funcionalidade em breve!')}
+            onLogout={handleLogout}
             transactions={transactions}
+            userName={profile?.name ?? user?.email ?? undefined}
+            userEmail={user?.email ?? undefined}
+            isAuthenticated={isAuthenticated}
           />
         );
       default:
@@ -287,12 +372,10 @@ function AppContent() {
         backgroundColor={theme.colors.background}
       />
 
-      {/* Conteúdo da tela atual */}
       <View style={styles.content}>
         {renderScreen()}
       </View>
 
-      {/* Barra de navegação */}
       <TabBar
         activeTab={activeTab}
         onTabPress={setActiveTab}
@@ -300,14 +383,12 @@ function AppContent() {
         onAddLongPress={() => setIsVoiceModalVisible(true)}
       />
 
-      {/* Modal de Adicionar Transação */}
       <AddTransactionModal
         visible={isModalVisible}
         onClose={() => setIsModalVisible(false)}
         onSave={handleSaveTransaction}
       />
 
-      {/* Modal de Editar Transação */}
       <EditTransactionModal
         visible={isEditModalVisible}
         transaction={selectedTransaction}
@@ -317,16 +398,16 @@ function AppContent() {
         }}
         onSave={handleUpdateTransaction}
         onDelete={handleDeleteTransaction}
+        onDeleteGroup={deleteInstallmentGroup}
+        onUpdateGroup={updateInstallmentGroup}
       />
 
-      {/* Modal de Entrada por Voz */}
       <VoiceInputModal
         visible={isVoiceModalVisible}
         onClose={() => setIsVoiceModalVisible(false)}
         onSave={handleSaveTransaction}
       />
 
-      {/* Modal de Orçamento */}
       <BudgetEditModal
         visible={isBudgetModalVisible}
         categoryId={editingBudgetCategoryId}
@@ -337,7 +418,6 @@ function AppContent() {
         onDelete={editingBudgetCategoryId ? handleDeleteBudget : undefined}
       />
 
-      {/* Modal de Notificações */}
       <NotificationsModal
         visible={isNotificationsVisible}
         notifications={notifications}
@@ -358,7 +438,9 @@ function AppContent() {
 export default function App() {
   return (
     <ThemeProvider>
-      <AppContent />
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
     </ThemeProvider>
   );
 }

@@ -6,9 +6,9 @@
 import { createClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Configuração Supabase - Contador de Bolso
-const SUPABASE_URL = 'https://begenzevxnqgwqwqeclp.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJlZ2VuemV2eG5xZ3dxd3FlY2xwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1MDcyNzEsImV4cCI6MjA4ODA4MzI3MX0.xxOlAcMgyEs8FToShmH2uaKvVjlHVGaaDIJx5WA1Kq0';
+// Configuração Supabase - Contador de Bolso (South America - São Paulo)
+const SUPABASE_URL = 'https://zlhwqunrqcjyfqluhbgd.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_Ql_ZSv2GfH-h0gwGHkiFrA_hfVrkoBX';
 
 // Criar cliente Supabase com persistência de sessão
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -50,7 +50,8 @@ export interface Category {
 export interface TransactionDB {
   id: string;
   user_id: string;
-  category_id: string | null;
+  category_key: string;       // ID de texto do app: 'delivery', 'grocery', etc.
+  category_id: string | null; // UUID da tabela categories (pode ser null)
   amount: number;
   type: 'expense' | 'income';
   description: string | null;
@@ -70,8 +71,9 @@ export interface TransactionDB {
 export interface Budget {
   id: string;
   user_id: string;
-  category_id: string | null;
-  amount: number;
+  category_key: string;       // ID de texto do app: 'delivery', 'grocery', etc.
+  category_id: string | null; // UUID da tabela categories (pode ser null)
+  amount: number;             // limite do orçamento
   period: 'monthly' | 'weekly';
   month: number | null;
   year: number | null;
@@ -401,13 +403,29 @@ export const budgetService = {
     return { budgets: (data as Budget[]) || [], error };
   },
 
-  // Criar/atualizar orçamento
+  // Criar/atualizar orçamento (usa category_key como chave de negócio)
   async upsertBudget(budget: Omit<Budget, 'id' | 'created_at' | 'updated_at'>) {
+    // Tenta atualizar primeiro; se não existir, insere
+    const { data: existing } = await supabase
+      .from('budgets')
+      .select('id')
+      .eq('user_id', budget.user_id)
+      .eq('category_key', budget.category_key)
+      .maybeSingle();
+
+    if (existing?.id) {
+      const { data, error } = await supabase
+        .from('budgets')
+        .update(budget as any)
+        .eq('id', existing.id)
+        .select()
+        .single();
+      return { budget: data as Budget | null, error };
+    }
+
     const { data, error } = await supabase
       .from('budgets')
-      .upsert(budget as any, {
-        onConflict: 'user_id,category_id,month,year',
-      })
+      .insert(budget as any)
       .select()
       .single();
     return { budget: data as Budget | null, error };

@@ -83,6 +83,7 @@ interface UseLocalTransactionsReturn {
   addTransaction: (transaction: Omit<Transaction, 'id'>) => Promise<Transaction>;
   addInstallments: (baseTransaction: Omit<Transaction, 'id'>, totalInstallments: number) => Promise<Transaction[]>;
   updateTransaction: (id: string, updates: Partial<Transaction>) => Promise<void>;
+  updateInstallmentGroup: (groupId: string, updates: Partial<Omit<Transaction, 'id' | 'date'>>) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
   deleteInstallmentGroup: (groupId: string) => Promise<void>;
   clearAll: () => Promise<void>;
@@ -192,6 +193,18 @@ export function useLocalTransactions(): UseLocalTransactionsReturn {
     await saveToStorage(updated);
   };
 
+  // Atualizar todas as parcelas de um grupo (mantém a data de cada uma)
+  const updateInstallmentGroup = async (
+    groupId: string,
+    updates: Partial<Omit<Transaction, 'id' | 'date'>>
+  ) => {
+    const updated = transactions.map(t =>
+      t.installmentGroupId === groupId ? { ...t, ...updates } : t
+    );
+    setTransactions(updated);
+    await saveToStorage(updated);
+  };
+
   // Deletar grupo de parcelas
   const deleteInstallmentGroup = async (groupId: string) => {
     const updated = transactions.filter(t => t.installmentGroupId !== groupId);
@@ -211,6 +224,7 @@ export function useLocalTransactions(): UseLocalTransactionsReturn {
     addTransaction,
     addInstallments,
     updateTransaction,
+    updateInstallmentGroup,
     deleteTransaction,
     deleteInstallmentGroup,
     clearAll,

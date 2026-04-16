@@ -16,6 +16,7 @@ export interface Goal {
   deadline?: string;  // ISO date
   icon: string;
   color: string;
+  isCompleted?: boolean;
   createdAt: string;
 }
 
@@ -117,7 +118,8 @@ export function useGoals(): UseGoalsReturn {
     if (!goal) return;
 
     const newAmount = Math.min(goal.currentAmount + amount, goal.targetAmount);
-    await updateGoal(id, { currentAmount: newAmount });
+    const isCompleted = newAmount >= goal.targetAmount;
+    await updateGoal(id, { currentAmount: newAmount, isCompleted });
   };
 
   // Remover meta

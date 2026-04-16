@@ -16,7 +16,7 @@ function dbToTransaction(db: TransactionDB): Transaction {
     description: db.description || '',
     amount: Number(db.amount),
     type: db.type,
-    categoryId: db.category_id || 'outros',
+    categoryId: db.category_key || db.category_id || 'outros',
     date: new Date(db.date),
     isInstallment: db.is_installment,
     installmentNumber: db.installment_number || undefined,
@@ -31,7 +31,8 @@ function dbToTransaction(db: TransactionDB): Transaction {
 function transactionToDb(t: Transaction, userId: string): Omit<TransactionDB, 'id' | 'created_at' | 'updated_at'> {
   return {
     user_id: userId,
-    category_id: t.categoryId,
+    category_key: t.categoryId,   // ID de texto: 'delivery', 'grocery', etc.
+    category_id: null,             // UUID da tabela categories (não usado no app por ora)
     amount: t.amount,
     type: t.type,
     description: t.description,
@@ -169,7 +170,8 @@ export function useTransactions(offlineTransactions?: Transaction[]): UseTransac
 
         dbTransactions.push({
           user_id: user.id,
-          category_id: baseTransaction.categoryId,
+          category_key: baseTransaction.categoryId,
+          category_id: null,
           amount: baseTransaction.amount,
           type: baseTransaction.type,
           description: baseTransaction.description,
@@ -215,7 +217,7 @@ export function useTransactions(offlineTransactions?: Transaction[]): UseTransac
       if (updates.description !== undefined) dbUpdates.description = updates.description;
       if (updates.amount !== undefined) dbUpdates.amount = updates.amount;
       if (updates.type !== undefined) dbUpdates.type = updates.type;
-      if (updates.categoryId !== undefined) dbUpdates.category_id = updates.categoryId;
+      if (updates.categoryId !== undefined) dbUpdates.category_key = updates.categoryId; // texto, não UUID
       if (updates.date !== undefined) dbUpdates.date = updates.date.toISOString().split('T')[0];
 
       const { error: updateError } = await transactionService.updateTransaction(id, dbUpdates);

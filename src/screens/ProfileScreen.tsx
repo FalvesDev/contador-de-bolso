@@ -1,9 +1,17 @@
 /**
  * Tela de Perfil - Design moderno banking
+ * COM ANIMAÇÕES
  */
 
-import React, { useState } from 'react';
-import { View, ScrollView, StyleSheet, Pressable, Alert } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import {
+  View,
+  ScrollView,
+  StyleSheet,
+  TouchableWithoutFeedback,
+  Alert,
+  Animated,
+} from 'react-native';
 import { Text } from '../components/ui/Text';
 import { Card } from '../components/ui/Card';
 import { ThemeSelector } from '../components/settings/ThemeSelector';
@@ -31,6 +39,9 @@ import {
 interface ProfileScreenProps {
   onLogout?: () => void;
   transactions?: Transaction[];
+  userName?: string;
+  userEmail?: string;
+  isAuthenticated?: boolean;
 }
 
 interface MenuItemProps {
@@ -41,10 +52,11 @@ interface MenuItemProps {
   onPress?: () => void;
   textColor: string;
   secondaryColor: string;
-  pressedColor: string;
+  index: number;
 }
 
-function MenuItem({
+// MenuItem com animação
+function AnimatedMenuItem({
   Icon,
   iconColor,
   label,
@@ -52,46 +64,104 @@ function MenuItem({
   onPress,
   textColor,
   secondaryColor,
-  pressedColor,
+  index,
 }: MenuItemProps) {
+  const scale = useRef(new Animated.Value(1)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
+  const translateX = useRef(new Animated.Value(-20)).current;
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      Animated.parallel([
+        Animated.timing(opacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+        Animated.spring(translateX, { toValue: 0, useNativeDriver: true, friction: 8 }),
+      ]).start();
+    }, 300 + index * 50);
+    return () => clearTimeout(timeout);
+  }, [index]);
+
+  const handlePressIn = () => {
+    Animated.spring(scale, { toValue: 0.97, useNativeDriver: true, speed: 50 }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 50, bounciness: 4 }).start();
+  };
+
   return (
-    <Pressable
-      style={({ pressed }) => [
-        styles.menuItem,
-        { backgroundColor: pressed ? pressedColor : 'transparent' },
-      ]}
+    <TouchableWithoutFeedback
       onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
     >
-      <View style={styles.menuItemLeft}>
-        <View style={[styles.menuIconContainer, { backgroundColor: (iconColor || secondaryColor) + '15' }]}>
-          <Icon size={20} color={iconColor || secondaryColor} />
+      <Animated.View
+        style={[
+          styles.menuItem,
+          { opacity, transform: [{ translateX }, { scale }] },
+        ]}
+      >
+        <View style={styles.menuItemLeft}>
+          <View style={[styles.menuIconContainer, { backgroundColor: (iconColor || secondaryColor) + '15' }]}>
+            <Icon size={20} color={iconColor || secondaryColor} />
+          </View>
+          <Text preset="body" style={{ color: textColor }}>{label}</Text>
         </View>
-        <Text preset="body" style={{ color: textColor }}>{label}</Text>
-      </View>
-      <View style={styles.menuItemRight}>
-        {value && (
-          <Text preset="caption" style={{ color: secondaryColor }}>
-            {value}
-          </Text>
-        )}
-        <ChevronRightIcon size={20} color={secondaryColor} />
-      </View>
-    </Pressable>
+        <View style={styles.menuItemRight}>
+          {value && (
+            <Text preset="caption" style={{ color: secondaryColor }}>
+              {value}
+            </Text>
+          )}
+          <ChevronRightIcon size={20} color={secondaryColor} />
+        </View>
+      </Animated.View>
+    </TouchableWithoutFeedback>
   );
 }
 
-export function ProfileScreen({ onLogout, transactions = [] }: ProfileScreenProps) {
+export function ProfileScreen({
+  onLogout,
+  transactions = [],
+  userName: userNameProp,
+  userEmail: userEmailProp,
+  isAuthenticated: isAuthenticatedProp,
+}: ProfileScreenProps) {
   const { theme } = useTheme();
   const [isThemeSelectorVisible, setThemeSelectorVisible] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
-  // Modo offline - valores fixos
-  const userName = 'Usuário';
-  const userEmail = 'Modo offline';
-  const isAuthenticated = false;
+  // Animações
+  const headerOpacity = useRef(new Animated.Value(0)).current;
+  const headerTranslate = useRef(new Animated.Value(-20)).current;
+  const avatarScale = useRef(new Animated.Value(0.3)).current;
+  const avatarOpacity = useRef(new Animated.Value(0)).current;
+  const badgeScale = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.stagger(100, [
+      // Header
+      Animated.parallel([
+        Animated.timing(headerOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
+        Animated.spring(headerTranslate, { toValue: 0, useNativeDriver: true, friction: 8 }),
+      ]),
+      // Avatar
+      Animated.parallel([
+        Animated.timing(avatarOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+        Animated.spring(avatarScale, { toValue: 1, useNativeDriver: true, friction: 5, tension: 80 }),
+      ]),
+      // Badge
+      Animated.spring(badgeScale, { toValue: 1, useNativeDriver: true, friction: 4, tension: 100 }),
+    ]).start();
+  }, []);
+
+  const userName = userNameProp ?? 'Usuário';
+  const userEmail = userEmailProp ?? 'Modo offline';
+  const isAuthenticated = isAuthenticatedProp ?? false;
 
   const handleLogout = () => {
-    Alert.alert('Info', 'Login será implementado em breve!');
+    if (onLogout) {
+      onLogout();
+    }
   };
 
   const getCategoryName = (id: string) => {
@@ -122,31 +192,55 @@ export function ProfileScreen({ onLogout, transactions = [] }: ProfileScreenProp
     await shareTextSummary(transactions, getCategoryName);
   };
 
+  // Contador de itens para stagger
+  let itemIndex = 0;
+
   return (
     <>
       <ScrollView
         style={[styles.container, { backgroundColor: theme.colors.background }]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View style={styles.header}>
+        {/* Header Animado */}
+        <Animated.View
+          style={[
+            styles.header,
+            { opacity: headerOpacity, transform: [{ translateY: headerTranslate }] },
+          ]}
+        >
           <Text preset="h3" style={{ color: theme.colors.text }}>Perfil</Text>
-        </View>
+        </Animated.View>
 
-        {/* Avatar e Info */}
+        {/* Avatar e Info Animados */}
         <View style={styles.profileSection}>
-          <View style={[styles.avatar, { backgroundColor: theme.colors.primaryLight }]}>
+          <Animated.View
+            style={[
+              styles.avatar,
+              { backgroundColor: theme.colors.primaryLight },
+              { opacity: avatarOpacity, transform: [{ scale: avatarScale }] },
+            ]}
+          >
             <UserIcon size={40} color={theme.colors.primary} />
-          </View>
-          <Text preset="h4" style={[styles.name, { color: theme.colors.text }]}>{userName}</Text>
-          <Text preset="caption" style={{ color: theme.colors.textSecondary }}>
-            {userEmail}
-          </Text>
-          <View style={[styles.planBadge, { backgroundColor: theme.colors.primary + '15' }]}>
+          </Animated.View>
+          <Animated.View style={{ opacity: avatarOpacity }}>
+            <Text preset="h4" style={[styles.name, { color: theme.colors.text }]}>{userName}</Text>
+          </Animated.View>
+          <Animated.View style={{ opacity: avatarOpacity }}>
+            <Text preset="caption" style={{ color: theme.colors.textSecondary }}>
+              {userEmail}
+            </Text>
+          </Animated.View>
+          <Animated.View
+            style={[
+              styles.planBadge,
+              { backgroundColor: theme.colors.primary + '15' },
+              { transform: [{ scale: badgeScale }] },
+            ]}
+          >
             <Text preset="caption" style={{ color: theme.colors.primary }}>
               {isAuthenticated ? 'Plano Gratuito' : 'Modo Offline'}
             </Text>
-          </View>
+          </Animated.View>
         </View>
 
         {/* Aparência */}
@@ -155,7 +249,7 @@ export function ProfileScreen({ onLogout, transactions = [] }: ProfileScreenProp
             APARÊNCIA
           </Text>
           <Card variant="elevated" padding="none" style={{ backgroundColor: theme.colors.card }}>
-            <MenuItem
+            <AnimatedMenuItem
               Icon={PaletteIcon}
               iconColor={theme.colors.primary}
               label="Tema"
@@ -163,7 +257,7 @@ export function ProfileScreen({ onLogout, transactions = [] }: ProfileScreenProp
               onPress={() => setThemeSelectorVisible(true)}
               textColor={theme.colors.text}
               secondaryColor={theme.colors.textSecondary}
-              pressedColor={theme.colors.backgroundTertiary}
+              index={itemIndex++}
             />
           </Card>
         </View>
@@ -174,7 +268,7 @@ export function ProfileScreen({ onLogout, transactions = [] }: ProfileScreenProp
             CONFIGURAÇÕES
           </Text>
           <Card variant="elevated" padding="none" style={{ backgroundColor: theme.colors.card }}>
-            <MenuItem
+            <AnimatedMenuItem
               Icon={WalletIcon}
               iconColor={theme.colors.success}
               label="Orçamento Mensal"
@@ -182,10 +276,10 @@ export function ProfileScreen({ onLogout, transactions = [] }: ProfileScreenProp
               onPress={() => {}}
               textColor={theme.colors.text}
               secondaryColor={theme.colors.textSecondary}
-              pressedColor={theme.colors.backgroundTertiary}
+              index={itemIndex++}
             />
             <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
-            <MenuItem
+            <AnimatedMenuItem
               Icon={ReceiptIcon}
               iconColor={theme.colors.warning}
               label="Categorias"
@@ -193,10 +287,10 @@ export function ProfileScreen({ onLogout, transactions = [] }: ProfileScreenProp
               onPress={() => {}}
               textColor={theme.colors.text}
               secondaryColor={theme.colors.textSecondary}
-              pressedColor={theme.colors.backgroundTertiary}
+              index={itemIndex++}
             />
             <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
-            <MenuItem
+            <AnimatedMenuItem
               Icon={BellIcon}
               iconColor={'#3B82F6'}
               label="Notificações"
@@ -204,7 +298,7 @@ export function ProfileScreen({ onLogout, transactions = [] }: ProfileScreenProp
               onPress={() => {}}
               textColor={theme.colors.text}
               secondaryColor={theme.colors.textSecondary}
-              pressedColor={theme.colors.backgroundTertiary}
+              index={itemIndex++}
             />
           </Card>
         </View>
@@ -215,7 +309,7 @@ export function ProfileScreen({ onLogout, transactions = [] }: ProfileScreenProp
             DADOS
           </Text>
           <Card variant="elevated" padding="none" style={{ backgroundColor: theme.colors.card }}>
-            <MenuItem
+            <AnimatedMenuItem
               Icon={DownloadIcon}
               iconColor={theme.colors.primary}
               label="Exportar CSV"
@@ -223,20 +317,20 @@ export function ProfileScreen({ onLogout, transactions = [] }: ProfileScreenProp
               onPress={handleExportCSV}
               textColor={theme.colors.text}
               secondaryColor={theme.colors.textSecondary}
-              pressedColor={theme.colors.backgroundTertiary}
+              index={itemIndex++}
             />
             <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
-            <MenuItem
+            <AnimatedMenuItem
               Icon={ShareIcon}
               iconColor={theme.colors.secondary || '#06B6D4'}
               label="Compartilhar resumo"
               onPress={handleShareSummary}
               textColor={theme.colors.text}
               secondaryColor={theme.colors.textSecondary}
-              pressedColor={theme.colors.backgroundTertiary}
+              index={itemIndex++}
             />
             <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
-            <MenuItem
+            <AnimatedMenuItem
               Icon={CreditCardIcon}
               iconColor={theme.colors.success}
               label="Conectar banco"
@@ -244,10 +338,10 @@ export function ProfileScreen({ onLogout, transactions = [] }: ProfileScreenProp
               onPress={() => {}}
               textColor={theme.colors.text}
               secondaryColor={theme.colors.textSecondary}
-              pressedColor={theme.colors.backgroundTertiary}
+              index={itemIndex++}
             />
             <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
-            <MenuItem
+            <AnimatedMenuItem
               Icon={SettingsIcon}
               iconColor={theme.colors.textSecondary}
               label="Backup na nuvem"
@@ -255,7 +349,7 @@ export function ProfileScreen({ onLogout, transactions = [] }: ProfileScreenProp
               onPress={() => {}}
               textColor={theme.colors.text}
               secondaryColor={theme.colors.textSecondary}
-              pressedColor={theme.colors.backgroundTertiary}
+              index={itemIndex++}
             />
           </Card>
         </View>
@@ -266,55 +360,45 @@ export function ProfileScreen({ onLogout, transactions = [] }: ProfileScreenProp
             SOBRE
           </Text>
           <Card variant="elevated" padding="none" style={{ backgroundColor: theme.colors.card }}>
-            <MenuItem
+            <AnimatedMenuItem
               Icon={SettingsIcon}
               iconColor={theme.colors.textSecondary}
               label="Versão do app"
               value="1.0.0"
               textColor={theme.colors.text}
               secondaryColor={theme.colors.textSecondary}
-              pressedColor={theme.colors.backgroundTertiary}
+              index={itemIndex++}
             />
             <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
-            <MenuItem
+            <AnimatedMenuItem
               Icon={ReceiptIcon}
               iconColor={theme.colors.textSecondary}
               label="Termos de uso"
               onPress={() => {}}
               textColor={theme.colors.text}
               secondaryColor={theme.colors.textSecondary}
-              pressedColor={theme.colors.backgroundTertiary}
+              index={itemIndex++}
             />
             <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
-            <MenuItem
+            <AnimatedMenuItem
               Icon={ShieldIcon}
               iconColor={theme.colors.success}
               label="Privacidade"
               onPress={() => {}}
               textColor={theme.colors.text}
               secondaryColor={theme.colors.textSecondary}
-              pressedColor={theme.colors.backgroundTertiary}
+              index={itemIndex++}
             />
           </Card>
         </View>
 
-        {/* Logout */}
+        {/* Logout Animado */}
         <View style={styles.logoutSection}>
-          <Pressable
-            style={({ pressed }) => [
-              styles.logoutButton,
-              {
-                backgroundColor: pressed ? theme.colors.danger + '15' : theme.colors.card,
-                borderColor: theme.colors.danger + '30',
-              },
-            ]}
+          <AnimatedLogoutButton
             onPress={handleLogout}
-          >
-            <LogOutIcon size={20} color={theme.colors.danger} />
-            <Text style={{ color: theme.colors.danger, fontSize: 16, fontWeight: '500', marginLeft: 12 }}>
-              {isAuthenticated ? 'Sair da conta' : 'Fazer login'}
-            </Text>
-          </Pressable>
+            theme={theme}
+            isAuthenticated={isAuthenticated}
+          />
         </View>
 
         {/* Footer */}
@@ -336,6 +420,63 @@ export function ProfileScreen({ onLogout, transactions = [] }: ProfileScreenProp
         onClose={() => setThemeSelectorVisible(false)}
       />
     </>
+  );
+}
+
+// Botão de logout animado
+function AnimatedLogoutButton({
+  onPress,
+  theme,
+  isAuthenticated,
+}: {
+  onPress: () => void;
+  theme: any;
+  isAuthenticated: boolean;
+}) {
+  const scale = useRef(new Animated.Value(1)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(20)).current;
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      Animated.parallel([
+        Animated.timing(opacity, { toValue: 1, duration: 400, useNativeDriver: true }),
+        Animated.spring(translateY, { toValue: 0, useNativeDriver: true, friction: 8 }),
+      ]).start();
+    }, 800);
+    return () => clearTimeout(timeout);
+  }, []);
+
+  const handlePressIn = () => {
+    Animated.spring(scale, { toValue: 0.95, useNativeDriver: true, speed: 50 }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 50, bounciness: 6 }).start();
+  };
+
+  return (
+    <TouchableWithoutFeedback
+      onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+    >
+      <Animated.View
+        style={[
+          styles.logoutButton,
+          {
+            backgroundColor: theme.colors.card,
+            borderColor: theme.colors.danger + '30',
+          },
+          { opacity, transform: [{ translateY }, { scale }] },
+        ]}
+      >
+        <LogOutIcon size={20} color={theme.colors.danger} />
+        <Text style={{ color: theme.colors.danger, fontSize: 16, fontWeight: '500', marginLeft: 12 }}>
+          {isAuthenticated ? 'Sair da conta' : 'Fazer login'}
+        </Text>
+      </Animated.View>
+    </TouchableWithoutFeedback>
   );
 }
 

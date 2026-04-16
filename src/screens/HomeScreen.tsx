@@ -1,24 +1,42 @@
 /**
  * Home Screen - Dashboard Simples e Clean
  * Fácil de entender para qualquer usuário
+ * COM ANIMAÇÕES COMPLETAS
  */
 
-import React, { useState } from 'react';
-import { ScrollView, View, StyleSheet, Dimensions, TouchableOpacity, Platform } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  ScrollView,
+  View,
+  StyleSheet,
+  Dimensions,
+  TouchableWithoutFeedback,
+  Platform,
+  Animated,
+  Easing,
+} from 'react-native';
 import Svg, { Defs, LinearGradient, Stop, Rect, Circle, Path } from 'react-native-svg';
+
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
 import { Text } from '../components/ui/Text';
 import { Card } from '../components/ui/Card';
-import { BellIcon, EyeIcon, EyeOffIcon, ArrowUpIcon, ArrowDownIcon } from '../components/ui/Icons';
+import {
+  BellIcon,
+  EyeIcon,
+  EyeOffIcon,
+  ArrowUpIcon,
+  ArrowDownIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  WalletIcon,
+  PiggyBankIcon,
+} from '../components/ui/Icons';
 import { RecentTransactions, Transaction } from '../components/dashboard/RecentTransactions';
-import { FutureExpenses } from '../components/dashboard/FutureExpenses';
-import { BudgetManager } from '../components/budget/BudgetManager';
-import { GoalsCard } from '../components/goals/GoalsCard';
+import { SmartInsights } from '../components/insights';
 import { getCategoryById } from '../constants/categories';
 import { useTheme } from '../contexts/ThemeContext';
 import { Budget } from '../hooks/useBudgets';
 import { Goal } from '../hooks/useGoals';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface HomeScreenProps {
   transactions: Transaction[];
@@ -28,8 +46,51 @@ interface HomeScreenProps {
   onSeeAllTransactions: () => void;
   onTransactionPress: (transaction: Transaction) => void;
   onNotificationsPress: () => void;
-  onEditBudget: (categoryId: string, currentLimit: number) => void;
-  onAddBudget: () => void;
+}
+
+// Componente de botão animado
+function AnimatedTouchable({
+  onPress,
+  style,
+  children,
+  scaleValue = 0.95,
+}: {
+  onPress: () => void;
+  style?: any;
+  children: React.ReactNode;
+  scaleValue?: number;
+}) {
+  const scale = useRef(new Animated.Value(1)).current;
+
+  const handlePressIn = () => {
+    Animated.spring(scale, {
+      toValue: scaleValue,
+      useNativeDriver: true,
+      speed: 50,
+      bounciness: 4,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scale, {
+      toValue: 1,
+      useNativeDriver: true,
+      speed: 50,
+      bounciness: 4,
+    }).start();
+  };
+
+  return (
+    <TouchableWithoutFeedback
+      onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+    >
+      <Animated.View style={[style, { transform: [{ scale }] }]}>
+        {children}
+      </Animated.View>
+    </TouchableWithoutFeedback>
+  );
 }
 
 export function HomeScreen({
@@ -40,33 +101,192 @@ export function HomeScreen({
   onSeeAllTransactions,
   onTransactionPress,
   onNotificationsPress,
-  onEditBudget,
-  onAddBudget,
 }: HomeScreenProps) {
   const { theme } = useTheme();
   const [hideValues, setHideValues] = useState(false);
 
-  // Cálculos simples
-  const income = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-  const expenses = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
-  const balance = income - expenses;
+  // ═══════════════════════════════════════════════════════
+  // ANIMAÇÕES
+  // ═══════════════════════════════════════════════════════
+
+  // Header animations
+  const headerOpacity = useRef(new Animated.Value(0)).current;
+  const headerTranslate = useRef(new Animated.Value(-20)).current;
+
+  // Balance animations
+  const balanceOpacity = useRef(new Animated.Value(0)).current;
+  const balanceScale = useRef(new Animated.Value(0.9)).current;
+
+  // Cards animations (staggered)
+  const card1Opacity = useRef(new Animated.Value(0)).current;
+  const card1Translate = useRef(new Animated.Value(30)).current;
+  const card2Opacity = useRef(new Animated.Value(0)).current;
+  const card2Translate = useRef(new Animated.Value(30)).current;
+
+  // Overview section
+  const overviewOpacity = useRef(new Animated.Value(0)).current;
+  const overviewTranslate = useRef(new Animated.Value(30)).current;
+
+  // Categories section
+  const categoriesOpacity = useRef(new Animated.Value(0)).current;
+  const categoriesTranslate = useRef(new Animated.Value(30)).current;
+
+  // Bell button pulse
+  const bellPulse = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    // Sequência de animações de entrada
+    const animations = Animated.stagger(100, [
+      // Header fade in
+      Animated.parallel([
+        Animated.timing(headerOpacity, {
+          toValue: 1,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+        Animated.spring(headerTranslate, {
+          toValue: 0,
+          useNativeDriver: true,
+          friction: 8,
+          tension: 60,
+        }),
+      ]),
+      // Balance appear
+      Animated.parallel([
+        Animated.timing(balanceOpacity, {
+          toValue: 1,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+        Animated.spring(balanceScale, {
+          toValue: 1,
+          useNativeDriver: true,
+          friction: 6,
+          tension: 80,
+        }),
+      ]),
+      // Card 1
+      Animated.parallel([
+        Animated.timing(card1Opacity, {
+          toValue: 1,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+        Animated.spring(card1Translate, {
+          toValue: 0,
+          useNativeDriver: true,
+          friction: 8,
+          tension: 60,
+        }),
+      ]),
+      // Card 2
+      Animated.parallel([
+        Animated.timing(card2Opacity, {
+          toValue: 1,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+        Animated.spring(card2Translate, {
+          toValue: 0,
+          useNativeDriver: true,
+          friction: 8,
+          tension: 60,
+        }),
+      ]),
+      // Overview
+      Animated.parallel([
+        Animated.timing(overviewOpacity, {
+          toValue: 1,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+        Animated.spring(overviewTranslate, {
+          toValue: 0,
+          useNativeDriver: true,
+          friction: 8,
+          tension: 60,
+        }),
+      ]),
+      // Categories
+      Animated.parallel([
+        Animated.timing(categoriesOpacity, {
+          toValue: 1,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+        Animated.spring(categoriesTranslate, {
+          toValue: 0,
+          useNativeDriver: true,
+          friction: 8,
+          tension: 60,
+        }),
+      ]),
+    ]);
+
+    animations.start();
+
+    // Bell pulse animation when there are notifications
+    if (unreadNotifications > 0) {
+      const pulse = Animated.loop(
+        Animated.sequence([
+          Animated.timing(bellPulse, {
+            toValue: 1.15,
+            duration: 800,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+          Animated.timing(bellPulse, {
+            toValue: 1,
+            duration: 800,
+            easing: Easing.inOut(Easing.ease),
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      pulse.start();
+      return () => pulse.stop();
+    }
+  }, [unreadNotifications]);
+
+  // ═══════════════════════════════════════════════════════
+  // DATA CALCULATIONS
+  // ═══════════════════════════════════════════════════════
 
   const today = new Date();
   const greeting = today.getHours() < 12 ? 'Bom dia' : today.getHours() < 18 ? 'Boa tarde' : 'Boa noite';
-  const currentMonth = today.toLocaleDateString('pt-BR', { month: 'long' });
+  const [currentDate, setCurrentDate] = useState(new Date());
+
+  const handlePrevMonth = () => {
+    setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+  };
+
+  const handleNextMonth = () => {
+    setCurrentDate(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+  };
+
+  const currentMonth = currentDate.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
 
   const formatMoney = (value: number) => {
     return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   };
 
-  // Gastos do mês atual agrupados por categoria (top 3)
-  const thisMonthExpenses = transactions.filter(t => {
+  const monthTransactions = transactions.filter(t => {
     const tDate = new Date(t.date);
-    return t.type === 'expense' &&
-           tDate.getMonth() === today.getMonth() &&
-           tDate.getFullYear() === today.getFullYear();
+    return tDate.getMonth() === currentDate.getMonth() &&
+      tDate.getFullYear() === currentDate.getFullYear();
   });
 
+  const income = monthTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+  const expenses = monthTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+  const balance = income - expenses;
+
+  const totalIncome = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+  const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+  const totalBalance = totalIncome - totalExpenses;
+
+  const totalReserves = goals.reduce((s, g) => s + g.currentAmount, 0);
+
+  const thisMonthExpenses = monthTransactions.filter(t => t.type === 'expense');
   const expensesByCategory: Record<string, number> = {};
   thisMonthExpenses.forEach(t => {
     expensesByCategory[t.categoryId] = (expensesByCategory[t.categoryId] || 0) + t.amount;
@@ -82,6 +302,10 @@ export function HomeScreen({
 
   const sortedTransactions = [...transactions].sort((a, b) => b.date.getTime() - a.date.getTime());
 
+  // ═══════════════════════════════════════════════════════
+  // RENDER
+  // ═══════════════════════════════════════════════════════
+
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: theme.colors.background }]}
@@ -90,31 +314,43 @@ export function HomeScreen({
     >
       {/* Header com Gradiente */}
       <View style={styles.headerContainer}>
-        <Svg width={SCREEN_WIDTH} height={240} style={styles.headerSvg}>
+        <Svg width={SCREEN_WIDTH} height={300} style={styles.headerSvg}>
           <Defs>
             <LinearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
               <Stop offset="0%" stopColor={theme.colors.gradientStart} />
-              <Stop offset="100%" stopColor={theme.colors.gradientEnd} />
+              <Stop offset="50%" stopColor={theme.colors.gradientEnd} />
+              <Stop offset="100%" stopColor={theme.colors.primary} />
             </LinearGradient>
           </Defs>
-          <Rect x="0" y="0" width={SCREEN_WIDTH} height={240} fill="url(#grad)" />
-          <Circle cx={SCREEN_WIDTH * 0.85} cy={40} r={80} fill="rgba(255,255,255,0.06)" />
-          <Circle cx={SCREEN_WIDTH * 0.1} cy={130} r={50} fill="rgba(255,255,255,0.04)" />
+          <Rect x="0" y="0" width={SCREEN_WIDTH} height={300} fill="url(#grad)" />
+          <Circle cx={SCREEN_WIDTH * 0.9} cy={30} r={100} fill="rgba(255,255,255,0.05)" />
+          <Circle cx={SCREEN_WIDTH * 0.1} cy={180} r={60} fill="rgba(255,255,255,0.04)" />
+          <Circle cx={SCREEN_WIDTH * 0.5} cy={-20} r={120} fill="rgba(255,255,255,0.03)" />
           <Path
-            d={`M0 200 C ${SCREEN_WIDTH * 0.3} 200 ${SCREEN_WIDTH * 0.5} 240 ${SCREEN_WIDTH} 200 L ${SCREEN_WIDTH} 240 L 0 240 Z`}
+            d={`M0 260 Q ${SCREEN_WIDTH * 0.25} 290 ${SCREEN_WIDTH * 0.5} 270 T ${SCREEN_WIDTH} 280 L ${SCREEN_WIDTH} 300 L 0 300 Z`}
             fill={theme.colors.background}
           />
         </Svg>
 
         <View style={styles.headerContent}>
-          {/* Top bar */}
-          <View style={styles.topBar}>
+          {/* Top bar animado */}
+          <Animated.View
+            style={[
+              styles.topBar,
+              {
+                opacity: headerOpacity,
+                transform: [{ translateY: headerTranslate }],
+              },
+            ]}
+          >
             <View>
               <Text style={styles.greeting}>{greeting}</Text>
               <Text style={styles.appName}>Contador de Bolso</Text>
             </View>
-            <TouchableOpacity style={styles.bellBtn} onPress={onNotificationsPress}>
-              <BellIcon size={22} color="rgba(255,255,255,0.9)" />
+            <AnimatedTouchable onPress={onNotificationsPress} style={styles.bellBtn}>
+              <Animated.View style={{ transform: [{ scale: bellPulse }] }}>
+                <BellIcon size={22} color="rgba(255,255,255,0.9)" />
+              </Animated.View>
               {unreadNotifications > 0 && (
                 <View style={styles.notificationBadge}>
                   <Text style={styles.notificationBadgeText}>
@@ -122,31 +358,67 @@ export function HomeScreen({
                   </Text>
                 </View>
               )}
-            </TouchableOpacity>
-          </View>
+            </AnimatedTouchable>
+          </Animated.View>
 
-          {/* Saldo */}
-          <View style={styles.balanceSection}>
+          {/* Seletor de Mês animado */}
+          <Animated.View
+            style={[
+              styles.monthSelector,
+              {
+                opacity: headerOpacity,
+                transform: [{ translateY: headerTranslate }],
+              },
+            ]}
+          >
+            <AnimatedTouchable onPress={handlePrevMonth} style={styles.monthArrow}>
+              <ChevronLeftIcon size={22} color="rgba(255,255,255,0.8)" />
+            </AnimatedTouchable>
+            <Text style={styles.monthLabel}>{currentMonth}</Text>
+            <AnimatedTouchable onPress={handleNextMonth} style={styles.monthArrow}>
+              <ChevronRightIcon size={22} color="rgba(255,255,255,0.8)" />
+            </AnimatedTouchable>
+          </Animated.View>
+
+          {/* Saldo animado */}
+          <Animated.View
+            style={[
+              styles.balanceSection,
+              {
+                opacity: balanceOpacity,
+                transform: [{ scale: balanceScale }],
+              },
+            ]}
+          >
             <View style={styles.balanceHeader}>
-              <Text style={styles.balanceLabel}>Saldo em {currentMonth}</Text>
-              <TouchableOpacity onPress={() => setHideValues(!hideValues)}>
+              <Text style={styles.balanceLabel}>Saldo do mês</Text>
+              <AnimatedTouchable onPress={() => setHideValues(!hideValues)} scaleValue={0.9}>
                 {hideValues ? (
-                  <EyeOffIcon size={20} color="rgba(255,255,255,0.7)" />
+                  <EyeOffIcon size={18} color="rgba(255,255,255,0.6)" />
                 ) : (
-                  <EyeIcon size={20} color="rgba(255,255,255,0.7)" />
+                  <EyeIcon size={18} color="rgba(255,255,255,0.6)" />
                 )}
-              </TouchableOpacity>
+              </AnimatedTouchable>
             </View>
-            <Text style={styles.balanceValue}>
+            <Text style={styles.balanceValue} numberOfLines={1} adjustsFontSizeToFit>
               {hideValues ? 'R$ ••••••' : formatMoney(balance)}
             </Text>
-          </View>
+          </Animated.View>
         </View>
       </View>
 
-      {/* Cards de Receita e Despesa */}
+      {/* Cards de Receita e Despesa animados */}
       <View style={styles.summaryCards}>
-        <View style={[styles.summaryCard, { backgroundColor: theme.colors.card }]}>
+        <Animated.View
+          style={[
+            styles.summaryCard,
+            { backgroundColor: theme.colors.card },
+            {
+              opacity: card1Opacity,
+              transform: [{ translateY: card1Translate }],
+            },
+          ]}
+        >
           <View style={[styles.summaryIconBg, { backgroundColor: '#10B981' + '20' }]}>
             <ArrowUpIcon size={18} color="#10B981" />
           </View>
@@ -161,9 +433,18 @@ export function HomeScreen({
               {hideValues ? '••••' : formatMoney(income)}
             </Text>
           </View>
-        </View>
+        </Animated.View>
 
-        <View style={[styles.summaryCard, { backgroundColor: theme.colors.card }]}>
+        <Animated.View
+          style={[
+            styles.summaryCard,
+            { backgroundColor: theme.colors.card },
+            {
+              opacity: card2Opacity,
+              transform: [{ translateY: card2Translate }],
+            },
+          ]}
+        >
           <View style={[styles.summaryIconBg, { backgroundColor: '#EF4444' + '20' }]}>
             <ArrowDownIcon size={18} color="#EF4444" />
           </View>
@@ -178,12 +459,79 @@ export function HomeScreen({
               {hideValues ? '••••' : formatMoney(expenses)}
             </Text>
           </View>
-        </View>
+        </Animated.View>
       </View>
+
+      {/* Visão Geral - Saldo Total e Reservas */}
+      <Animated.View
+        style={[
+          styles.overviewSection,
+          {
+            opacity: overviewOpacity,
+            transform: [{ translateY: overviewTranslate }],
+          },
+        ]}
+      >
+        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+          Visão Geral
+        </Text>
+        <View style={styles.overviewCards}>
+          <AnimatedTouchable
+            onPress={() => {}}
+            style={[styles.overviewCard, { backgroundColor: theme.colors.card }]}
+          >
+            <View style={[styles.overviewIconBg, { backgroundColor: theme.colors.primary + '20' }]}>
+              <WalletIcon size={20} color={theme.colors.primary} />
+            </View>
+            <Text style={[styles.overviewLabel, { color: theme.colors.textSecondary }]}>
+              Saldo Total
+            </Text>
+            <Text
+              style={[
+                styles.overviewValue,
+                { color: totalBalance >= 0 ? '#10B981' : '#EF4444' },
+              ]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.6}
+            >
+              {hideValues ? '••••••' : formatMoney(totalBalance)}
+            </Text>
+          </AnimatedTouchable>
+
+          <AnimatedTouchable
+            onPress={() => {}}
+            style={[styles.overviewCard, { backgroundColor: theme.colors.card }]}
+          >
+            <View style={[styles.overviewIconBg, { backgroundColor: '#EC4899' + '20' }]}>
+              <PiggyBankIcon size={20} color="#EC4899" />
+            </View>
+            <Text style={[styles.overviewLabel, { color: theme.colors.textSecondary }]}>
+              Reservas
+            </Text>
+            <Text
+              style={[styles.overviewValue, { color: '#EC4899' }]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.6}
+            >
+              {hideValues ? '••••••' : formatMoney(totalReserves)}
+            </Text>
+          </AnimatedTouchable>
+        </View>
+      </Animated.View>
 
       {/* Onde você mais gastou */}
       {topCategories.length > 0 && (
-        <View style={styles.section}>
+        <Animated.View
+          style={[
+            styles.section,
+            {
+              opacity: categoriesOpacity,
+              transform: [{ translateY: categoriesTranslate }],
+            },
+          ]}
+        >
           <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
             Onde você mais gastou
           </Text>
@@ -200,7 +548,7 @@ export function HomeScreen({
               </View>
             ))}
           </Card>
-        </View>
+        </Animated.View>
       )}
 
       {/* Últimas transações */}
@@ -210,23 +558,8 @@ export function HomeScreen({
         onTransactionPress={onTransactionPress}
       />
 
-      {/* Compromissos Futuros (parcelas e fixos) */}
-      <FutureExpenses transactions={transactions} />
-
-      {/* Orçamento por Categoria */}
-      <BudgetManager
-        transactions={transactions}
-        budgets={budgets}
-        onEditBudget={onEditBudget}
-        onAddBudget={onAddBudget}
-      />
-
-      {/* Metas Financeiras */}
-      <GoalsCard
-        goals={goals}
-        onAddGoal={() => {}}
-        onViewGoal={() => {}}
-      />
+      {/* Insights Inteligentes */}
+      <SmartInsights transactions={transactions} budgets={budgets} />
 
       {/* Dica simples */}
       {balance < 0 && (
@@ -258,8 +591,10 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   headerContainer: {
-    height: 240,
+    height: 300,
     marginBottom: -20,
+    overflow: 'visible',
+    position: 'relative',
   },
   headerSvg: {
     position: 'absolute',
@@ -267,25 +602,30 @@ const styles = StyleSheet.create({
     left: 0,
   },
   headerContent: {
-    flex: 1,
     paddingHorizontal: 20,
     paddingTop: 12,
+    paddingBottom: 30,
+    zIndex: 10,
   },
   topBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 16,
   },
   greeting: {
     color: 'rgba(255,255,255,0.7)',
     fontSize: 14,
+    lineHeight: 20,
+    includeFontPadding: false,
   },
   appName: {
     color: '#FFFFFF',
     fontSize: 22,
     fontWeight: '700',
     marginTop: 2,
+    lineHeight: 28,
+    includeFontPadding: false,
   },
   bellBtn: {
     width: 44,
@@ -295,25 +635,49 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  monthSelector: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+    marginTop: 4,
+  },
+  monthArrow: {
+    padding: 10,
+  },
+  monthLabel: {
+    color: 'rgba(255,255,255,0.95)',
+    fontSize: 17,
+    fontWeight: '600',
+    textTransform: 'capitalize',
+    marginHorizontal: 8,
+    lineHeight: 24,
+    includeFontPadding: false,
+  },
   balanceSection: {
+    marginTop: 4,
     marginBottom: 16,
+    alignItems: 'center',
   },
   balanceHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 8,
+    gap: 10,
   },
   balanceLabel: {
     color: 'rgba(255,255,255,0.7)',
     fontSize: 14,
-    textTransform: 'capitalize',
+    lineHeight: 20,
+    includeFontPadding: false,
   },
   balanceValue: {
     color: '#FFFFFF',
     fontSize: 36,
     fontWeight: '700',
-    letterSpacing: -1,
+    letterSpacing: -0.5,
+    lineHeight: 48,
+    includeFontPadding: false,
   },
   summaryCards: {
     flexDirection: 'row',
@@ -410,6 +774,41 @@ const styles = StyleSheet.create({
   notificationBadgeText: {
     color: '#FFFFFF',
     fontSize: 11,
+    fontWeight: '700',
+  },
+  overviewSection: {
+    paddingHorizontal: 20,
+    marginTop: 20,
+  },
+  overviewCards: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 12,
+  },
+  overviewCard: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 16,
+    alignItems: 'center',
+    ...Platform.select({
+      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8 },
+      android: { elevation: 2 },
+    }),
+  },
+  overviewIconBg: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  overviewLabel: {
+    fontSize: 12,
+    marginBottom: 4,
+  },
+  overviewValue: {
+    fontSize: 18,
     fontWeight: '700',
   },
 });

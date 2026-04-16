@@ -2,9 +2,10 @@
  * Tela de Relatórios - Design moderno com Análise Financeira Inteligente
  */
 
-import React, { useMemo, useState } from 'react';
-import { View, ScrollView, StyleSheet, Alert } from 'react-native';
+import React, { useMemo, useState, useCallback, useRef, useEffect } from 'react';
+import { View, ScrollView, StyleSheet, Alert, Animated } from 'react-native';
 import Svg, { Circle as SvgCircle, Path } from 'react-native-svg';
+import { CalendarView, DayTransactionsModal } from '../components/reports';
 import { Text } from '../components/ui/Text';
 import { Card } from '../components/ui/Card';
 import { Transaction } from '../components/dashboard/RecentTransactions';
@@ -407,6 +408,57 @@ export function ReportsScreen({
 }: ReportsScreenProps) {
   const { theme } = useTheme();
 
+  // Estado do modal de transações do dia
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedDayTransactions, setSelectedDayTransactions] = useState<Transaction[]>([]);
+  const [modalVisible, setModalVisible] = useState(false);
+
+  // Handler para quando um dia é pressionado no calendário
+  const handleDayPress = useCallback((date: Date, dayTransactions: Transaction[]) => {
+    setSelectedDate(date);
+    setSelectedDayTransactions(dayTransactions);
+    setModalVisible(true);
+  }, []);
+
+  const handleCloseModal = useCallback(() => {
+    setModalVisible(false);
+  }, []);
+
+  // Animações de entrada
+  const headerOpacity = useRef(new Animated.Value(0)).current;
+  const headerTranslate = useRef(new Animated.Value(-20)).current;
+  const summaryOpacity = useRef(new Animated.Value(0)).current;
+  const summaryScale = useRef(new Animated.Value(0.95)).current;
+  const chartsOpacity = useRef(new Animated.Value(0)).current;
+  const chartsTranslate = useRef(new Animated.Value(30)).current;
+  const cardsOpacity = useRef(new Animated.Value(0)).current;
+  const cardsTranslate = useRef(new Animated.Value(30)).current;
+
+  useEffect(() => {
+    Animated.stagger(150, [
+      // Header
+      Animated.parallel([
+        Animated.timing(headerOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
+        Animated.spring(headerTranslate, { toValue: 0, useNativeDriver: true, friction: 8 }),
+      ]),
+      // Summary card
+      Animated.parallel([
+        Animated.timing(summaryOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
+        Animated.spring(summaryScale, { toValue: 1, useNativeDriver: true, friction: 6 }),
+      ]),
+      // Charts
+      Animated.parallel([
+        Animated.timing(chartsOpacity, { toValue: 1, duration: 500, useNativeDriver: true }),
+        Animated.spring(chartsTranslate, { toValue: 0, useNativeDriver: true, friction: 8 }),
+      ]),
+      // Analysis cards
+      Animated.parallel([
+        Animated.timing(cardsOpacity, { toValue: 1, duration: 500, useNativeDriver: true }),
+        Animated.spring(cardsTranslate, { toValue: 0, useNativeDriver: true, friction: 8 }),
+      ]),
+    ]).start();
+  }, []);
+
   // Calcular totais
   const totalExpenses = useMemo(() =>
     transactions
@@ -533,60 +585,95 @@ export function ReportsScreen({
       style={[styles.container, { backgroundColor: theme.colors.background }]}
       showsVerticalScrollIndicator={false}
     >
-      {/* Header */}
-      <View style={styles.header}>
+      {/* Header Animado */}
+      <Animated.View
+        style={[
+          styles.header,
+          { opacity: headerOpacity, transform: [{ translateY: headerTranslate }] },
+        ]}
+      >
         <Text preset="h3" style={{ color: theme.colors.text }}>Relatórios</Text>
         <Text preset="caption" color={theme.colors.textSecondary}>
           {new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
         </Text>
+      </Animated.View>
+
+      {/* Resumo do Mês Animado */}
+      <Animated.View
+        style={{ opacity: summaryOpacity, transform: [{ scale: summaryScale }] }}
+      >
+        <Card variant="elevated" style={{ ...styles.summaryCard, backgroundColor: theme.colors.card }}>
+          <Text preset="label" color={theme.colors.textSecondary}>Resumo do Mês</Text>
+          <View style={styles.summaryRow}>
+            <View style={styles.summaryItem}>
+              <Text preset="caption" color={theme.colors.success}>Receitas</Text>
+              <Text style={{ fontSize: 16, fontWeight: '600', color: theme.colors.success }}>
+                {formatCurrency(totalIncome)}
+              </Text>
+            </View>
+            <View style={styles.summaryItem}>
+              <Text preset="caption" color={theme.colors.danger}>Despesas</Text>
+              <Text style={{ fontSize: 16, fontWeight: '600', color: theme.colors.danger }}>
+                {formatCurrency(totalExpenses)}
+              </Text>
+            </View>
+            <View style={styles.summaryItem}>
+              <Text preset="caption" color={theme.colors.primary}>Saldo</Text>
+              <Text style={{ fontSize: 16, fontWeight: '600', color: currentBalance >= 0 ? theme.colors.success : theme.colors.danger }}>
+                {formatCurrency(currentBalance)}
+              </Text>
+            </View>
+          </View>
+        </Card>
+      </Animated.View>
+
+      {/* Gráficos Visuais Animados */}
+      <Animated.View
+        style={{ opacity: chartsOpacity, transform: [{ translateY: chartsTranslate }] }}
+      >
+        <PieChart data={pieChartData} title="Despesas por Categoria" />
+
+        <LineChart data={lineChartData} title="Evolução do Saldo (7 dias)" />
+
+        <BarChart data={barChartData} title="Comparativo Mensal" />
+      </Animated.View>
+
+      {/* Calendário Financeiro */}
+      <View style={styles.sectionHeader}>
+        <Text preset="h4" style={{ color: theme.colors.text }}>Calendário Financeiro</Text>
+        <Text preset="caption" color={theme.colors.textSecondary}>
+          Visualize seus gastos e receitas por dia
+        </Text>
       </View>
+      <CalendarView transactions={transactions} onDayPress={handleDayPress} />
 
-      {/* Resumo do Mês */}
-      <Card variant="elevated" style={{ ...styles.summaryCard, backgroundColor: theme.colors.card }}>
-        <Text preset="label" color={theme.colors.textSecondary}>Resumo do Mês</Text>
-        <View style={styles.summaryRow}>
-          <View style={styles.summaryItem}>
-            <Text preset="caption" color={theme.colors.success}>Receitas</Text>
-            <Text style={{ fontSize: 16, fontWeight: '600', color: theme.colors.success }}>
-              {formatCurrency(totalIncome)}
-            </Text>
-          </View>
-          <View style={styles.summaryItem}>
-            <Text preset="caption" color={theme.colors.danger}>Despesas</Text>
-            <Text style={{ fontSize: 16, fontWeight: '600', color: theme.colors.danger }}>
-              {formatCurrency(totalExpenses)}
-            </Text>
-          </View>
-          <View style={styles.summaryItem}>
-            <Text preset="caption" color={theme.colors.primary}>Saldo</Text>
-            <Text style={{ fontSize: 16, fontWeight: '600', color: currentBalance >= 0 ? theme.colors.success : theme.colors.danger }}>
-              {formatCurrency(currentBalance)}
-            </Text>
-          </View>
-        </View>
-      </Card>
+      {/* Modal de Transações do Dia */}
+      <DayTransactionsModal
+        visible={modalVisible}
+        date={selectedDate}
+        transactions={selectedDayTransactions}
+        onClose={handleCloseModal}
+      />
 
-      {/* Gráficos Visuais */}
-      <PieChart data={pieChartData} title="Despesas por Categoria" />
+      {/* Cards de Análise Animados */}
+      <Animated.View
+        style={{ opacity: cardsOpacity, transform: [{ translateY: cardsTranslate }] }}
+      >
+        {/* Score de Saúde Financeira */}
+        <HealthScoreCard health={financialHealth} theme={theme} />
 
-      <LineChart data={lineChartData} title="Evolução do Saldo (7 dias)" />
+        {/* Risco de Ficar Negativo */}
+        <NegativeRiskCard risk={negativeRisk} theme={theme} />
 
-      <BarChart data={barChartData} title="Comparativo Mensal" />
+        {/* Padrões de Gasto */}
+        <SpendingPatternsCard patterns={spendingPatterns} theme={theme} />
 
-      {/* Score de Saúde Financeira */}
-      <HealthScoreCard health={financialHealth} theme={theme} />
+        {/* Recomendações de Poupança */}
+        <SavingsCard savings={savingsRecommendations} theme={theme} />
 
-      {/* Risco de Ficar Negativo */}
-      <NegativeRiskCard risk={negativeRisk} theme={theme} />
-
-      {/* Padrões de Gasto */}
-      <SpendingPatternsCard patterns={spendingPatterns} theme={theme} />
-
-      {/* Recomendações de Poupança */}
-      <SavingsCard savings={savingsRecommendations} theme={theme} />
-
-      {/* Gastos por Categoria */}
-      <CategoryExpensesCard expenses={expensesByCategory} total={totalExpenses} theme={theme} />
+        {/* Gastos por Categoria */}
+        <CategoryExpensesCard expenses={expensesByCategory} total={totalExpenses} theme={theme} />
+      </Animated.View>
 
       {/* Compromissos Futuros (Parcelas e Fixos) */}
       <FutureExpenses transactions={transactions} />
@@ -871,5 +958,10 @@ const styles = StyleSheet.create({
   },
   spacer: {
     height: spacing[12],
+  },
+  sectionHeader: {
+    paddingHorizontal: spacing[4],
+    marginTop: spacing[4],
+    marginBottom: spacing[2],
   },
 });

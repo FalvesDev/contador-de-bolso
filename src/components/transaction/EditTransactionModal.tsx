@@ -14,6 +14,7 @@ import {
   Platform,
   Alert,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { Text } from '../ui/Text';
 import { XIcon, CheckIcon, TrashIcon } from '../ui/Icons';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -26,6 +27,8 @@ interface EditTransactionModalProps {
   onClose: () => void;
   onSave: (id: string, updates: Partial<Transaction>) => void;
   onDelete: (id: string) => void;
+  onDeleteGroup?: (groupId: string) => void;
+  onUpdateGroup?: (groupId: string, updates: Partial<Omit<Transaction, 'id' | 'date'>>) => void;
 }
 
 export function EditTransactionModal({
@@ -34,6 +37,8 @@ export function EditTransactionModal({
   onClose,
   onSave,
   onDelete,
+  onDeleteGroup,
+  onUpdateGroup,
 }: EditTransactionModalProps) {
   const { theme } = useTheme();
 
@@ -91,19 +96,84 @@ export function EditTransactionModal({
 
     if (!transaction) return;
 
-    onSave(transaction.id, {
+    const updates = {
       description: description.trim(),
       amount: parsedAmount,
       type,
       categoryId,
-    });
+    };
 
+    // Se for parcela, pergunta o escopo da edição
+    if (transaction.isInstallment && transaction.installmentGroupId && onUpdateGroup) {
+      Alert.alert(
+        'Editar parcela',
+        `Esta é a parcela ${transaction.installmentNumber ?? '?'} de ${transaction.totalInstallments ?? '?'}.\n\nO que deseja editar?`,
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Só esta parcela',
+            onPress: () => {
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              onSave(transaction.id, updates);
+              onClose();
+            },
+          },
+          {
+            text: 'Todas as parcelas',
+            onPress: () => {
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              onUpdateGroup(transaction.installmentGroupId!, updates);
+              onClose();
+            },
+          },
+        ]
+      );
+      return;
+    }
+
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    onSave(transaction.id, updates);
     onClose();
   };
 
   const handleDelete = () => {
     if (!transaction) return;
 
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    // Se for parcela, pergunta o escopo da exclusão
+    if (transaction.isInstallment && transaction.installmentGroupId) {
+      const remaining = transaction.totalInstallments
+        ? `${transaction.totalInstallments - (transaction.installmentNumber ?? 1)} parcelas restantes`
+        : 'demais parcelas';
+
+      Alert.alert(
+        'Excluir parcela',
+        `Esta é a parcela ${transaction.installmentNumber ?? '?'} de ${transaction.totalInstallments ?? '?'}.\n\nO que deseja excluir?`,
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Só esta parcela',
+            onPress: () => { onDelete(transaction.id); onClose(); },
+          },
+          {
+            text: `Todas as parcelas (${remaining})`,
+            style: 'destructive',
+            onPress: () => {
+              if (onDeleteGroup) {
+                onDeleteGroup(transaction.installmentGroupId!);
+              } else {
+                onDelete(transaction.id);
+              }
+              onClose();
+            },
+          },
+        ]
+      );
+      return;
+    }
+
+    // Transação simples
     Alert.alert(
       'Excluir transação',
       'Tem certeza que deseja excluir esta transação?',
@@ -112,10 +182,7 @@ export function EditTransactionModal({
         {
           text: 'Excluir',
           style: 'destructive',
-          onPress: () => {
-            onDelete(transaction.id);
-            onClose();
-          },
+          onPress: () => { onDelete(transaction.id); onClose(); },
         },
       ]
     );

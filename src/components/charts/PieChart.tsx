@@ -67,7 +67,7 @@ export function PieChart({ data, title = 'Gastos por Categoria', size = 140 }: P
   const cx = size / 2;
   const cy = size / 2;
   const outerR = size / 2 - 4;
-  const innerR = outerR * 0.55;
+  const innerR = outerR * 0.62;
 
   return (
     <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
@@ -94,22 +94,24 @@ export function PieChart({ data, title = 'Gastos por Categoria', size = 140 }: P
             <Circle cx={cx} cy={cy} r={innerR} fill={theme.colors.card} />
             <SvgText
               x={cx}
-              y={cy - 4}
+              y={cy - 6}
               textAnchor="middle"
               fill={theme.colors.textSecondary}
-              fontSize={10}
+              fontSize={9}
             >
               Total
             </SvgText>
             <SvgText
               x={cx}
-              y={cy + 12}
+              y={cy + 8}
               textAnchor="middle"
               fill={theme.colors.text}
-              fontSize={13}
+              fontSize={total >= 10000 ? 9 : 11}
               fontWeight="600"
             >
-              R$ {(total / 1000).toFixed(1)}k
+              {total >= 1000
+                ? `R$${(total / 1000).toFixed(1)}k`
+                : `R$${total.toFixed(0)}`}
             </SvgText>
           </Svg>
         </View>

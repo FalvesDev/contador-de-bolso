@@ -1,17 +1,20 @@
 /**
  * Tela de lista de transações - Design moderno banking
  * Com filtros avançados por período e categoria
+ * COM ANIMAÇÕES
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   View,
   ScrollView,
   StyleSheet,
-  Pressable,
+  TouchableWithoutFeedback,
   TouchableOpacity,
   Modal,
   TextInput,
+  Animated,
+  Easing,
 } from 'react-native';
 import { Text } from '../components/ui/Text';
 import { Card } from '../components/ui/Card';
@@ -37,13 +40,15 @@ interface TransactionsScreenProps {
   onTransactionPress: (transaction: Transaction) => void;
 }
 
-function FilterChip({
+// Chip com animação
+function AnimatedFilterChip({
   label,
   isActive,
   onPress,
   activeColor,
   inactiveColor,
   inactiveBg,
+  delay = 0,
 }: {
   label: string;
   isActive: boolean;
@@ -51,26 +56,53 @@ function FilterChip({
   activeColor: string;
   inactiveColor: string;
   inactiveBg: string;
+  delay?: number;
 }) {
+  const scale = useRef(new Animated.Value(1)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(10)).current;
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      Animated.parallel([
+        Animated.timing(opacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+        Animated.spring(translateY, { toValue: 0, useNativeDriver: true, friction: 8 }),
+      ]).start();
+    }, delay);
+    return () => clearTimeout(timeout);
+  }, [delay]);
+
+  const handlePressIn = () => {
+    Animated.spring(scale, { toValue: 0.92, useNativeDriver: true, speed: 50 }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 50, bounciness: 6 }).start();
+  };
+
   return (
-    <Pressable
-      style={[
-        styles.chip,
-        { backgroundColor: isActive ? activeColor : inactiveBg },
-      ]}
+    <TouchableWithoutFeedback
       onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
     >
-      <Text
-        preset="label"
-        color={isActive ? '#FFFFFF' : inactiveColor}
+      <Animated.View
+        style={[
+          styles.chip,
+          { backgroundColor: isActive ? activeColor : inactiveBg },
+          { opacity, transform: [{ translateY }, { scale }] },
+        ]}
       >
-        {label}
-      </Text>
-    </Pressable>
+        <Text preset="label" color={isActive ? '#FFFFFF' : inactiveColor}>
+          {label}
+        </Text>
+      </Animated.View>
+    </TouchableWithoutFeedback>
   );
 }
 
-function TransactionItem({
+// Item de transação com animação
+function AnimatedTransactionItem({
   transaction,
   onPress,
   textColor,
@@ -78,6 +110,7 @@ function TransactionItem({
   pressedColor,
   successColor,
   dangerColor,
+  index,
 }: {
   transaction: Transaction;
   onPress: () => void;
@@ -86,16 +119,36 @@ function TransactionItem({
   pressedColor: string;
   successColor: string;
   dangerColor: string;
+  index: number;
 }) {
   const category = getCategoryById(transaction.categoryId);
   const iconName = category?.icon || 'receipt';
   const iconColor = category?.color || '#64748B';
 
+  const scale = useRef(new Animated.Value(1)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
+  const translateX = useRef(new Animated.Value(-20)).current;
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      Animated.parallel([
+        Animated.timing(opacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+        Animated.spring(translateX, { toValue: 0, useNativeDriver: true, friction: 8 }),
+      ]).start();
+    }, index * 50); // Stagger de 50ms por item
+    return () => clearTimeout(timeout);
+  }, [index]);
+
+  const handlePressIn = () => {
+    Animated.spring(scale, { toValue: 0.97, useNativeDriver: true, speed: 50 }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scale, { toValue: 1, useNativeDriver: true, speed: 50, bounciness: 4 }).start();
+  };
+
   const formatDate = (date: Date) => {
-    return date.toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: 'short',
-    });
+    return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
   };
 
   const formatMoney = (value: number, type: 'income' | 'expense') => {
@@ -104,38 +157,95 @@ function TransactionItem({
   };
 
   return (
-    <Pressable
-      style={({ pressed }) => [
-        styles.transactionItem,
-        { backgroundColor: pressed ? pressedColor : 'transparent' },
-      ]}
+    <TouchableWithoutFeedback
       onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
     >
-      <View
+      <Animated.View
         style={[
-          styles.iconContainer,
-          { backgroundColor: iconColor + '15' },
+          styles.transactionItem,
+          { opacity, transform: [{ translateX }, { scale }] },
         ]}
       >
-        <CategoryIcon name={iconName} size={20} color={iconColor} />
-      </View>
+        <View style={[styles.iconContainer, { backgroundColor: iconColor + '15' }]}>
+          <CategoryIcon name={iconName} size={20} color={iconColor} />
+        </View>
 
-      <View style={styles.transactionInfo}>
-        <Text preset="body" numberOfLines={1} style={{ color: textColor }}>
-          {transaction.description}
-        </Text>
-        <Text preset="caption" color={secondaryColor}>
-          {category?.name || 'Outros'} • {formatDate(transaction.date)}
-        </Text>
-      </View>
+        <View style={styles.transactionInfo}>
+          <Text preset="body" numberOfLines={1} style={{ color: textColor }}>
+            {transaction.description}
+          </Text>
+          <Text preset="caption" color={secondaryColor}>
+            {category?.name || 'Outros'} • {formatDate(transaction.date)}
+          </Text>
+        </View>
 
-      <Text
-        preset="label"
-        color={transaction.type === 'income' ? successColor : dangerColor}
-      >
-        {formatMoney(transaction.amount, transaction.type)}
+        <Text
+          preset="label"
+          color={transaction.type === 'income' ? successColor : dangerColor}
+        >
+          {formatMoney(transaction.amount, transaction.type)}
+        </Text>
+      </Animated.View>
+    </TouchableWithoutFeedback>
+  );
+}
+
+// Grupo de transações animado
+function AnimatedTransactionGroup({
+  dateKey,
+  items,
+  formatGroupDate,
+  onTransactionPress,
+  theme,
+  groupIndex,
+}: {
+  dateKey: string;
+  items: Transaction[];
+  formatGroupDate: (date: string) => string;
+  onTransactionPress: (t: Transaction) => void;
+  theme: any;
+  groupIndex: number;
+}) {
+  const opacity = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(30)).current;
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      Animated.parallel([
+        Animated.timing(opacity, { toValue: 1, duration: 400, useNativeDriver: true }),
+        Animated.spring(translateY, { toValue: 0, useNativeDriver: true, friction: 8, tension: 60 }),
+      ]).start();
+    }, groupIndex * 100); // Stagger entre grupos
+    return () => clearTimeout(timeout);
+  }, [groupIndex]);
+
+  return (
+    <Animated.View style={[styles.group, { opacity, transform: [{ translateY }] }]}>
+      <Text preset="label" color={theme.colors.textSecondary} style={styles.groupHeader}>
+        {formatGroupDate(dateKey)}
       </Text>
-    </Pressable>
+      <Card variant="elevated" padding="none" style={{ backgroundColor: theme.colors.card }}>
+        {items.map((transaction, index) => (
+          <React.Fragment key={transaction.id}>
+            <AnimatedTransactionItem
+              transaction={transaction}
+              onPress={() => onTransactionPress(transaction)}
+              textColor={theme.colors.text}
+              secondaryColor={theme.colors.textSecondary}
+              pressedColor={theme.colors.backgroundTertiary}
+              successColor={theme.colors.success}
+              dangerColor={theme.colors.danger}
+              index={index}
+            />
+            {index < items.length - 1 && (
+              <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
+            )}
+          </React.Fragment>
+        ))}
+      </Card>
+    </Animated.View>
   );
 }
 
@@ -148,6 +258,25 @@ export function TransactionsScreen({
   const [period, setPeriod] = useState<PeriodType>('month');
   const [showPeriodPicker, setShowPeriodPicker] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Animações de entrada
+  const headerOpacity = useRef(new Animated.Value(0)).current;
+  const headerTranslate = useRef(new Animated.Value(-20)).current;
+  const summaryOpacity = useRef(new Animated.Value(0)).current;
+  const summaryScale = useRef(new Animated.Value(0.95)).current;
+
+  useEffect(() => {
+    Animated.stagger(100, [
+      Animated.parallel([
+        Animated.timing(headerOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
+        Animated.spring(headerTranslate, { toValue: 0, useNativeDriver: true, friction: 8 }),
+      ]),
+      Animated.parallel([
+        Animated.timing(summaryOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
+        Animated.spring(summaryScale, { toValue: 1, useNativeDriver: true, friction: 6 }),
+      ]),
+    ]).start();
+  }, []);
 
   // Filtrar por busca
   const filterBySearch = (t: Transaction) => {
@@ -198,16 +327,12 @@ export function TransactionsScreen({
   }, [transactions, filter, period, searchQuery]);
 
   const totalIncome = useMemo(() =>
-    filteredTransactions
-      .filter(t => t.type === 'income')
-      .reduce((sum, t) => sum + t.amount, 0),
+    filteredTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0),
     [filteredTransactions]
   );
 
   const totalExpense = useMemo(() =>
-    filteredTransactions
-      .filter(t => t.type === 'expense')
-      .reduce((sum, t) => sum + t.amount, 0),
+    filteredTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0),
     [filteredTransactions]
   );
 
@@ -216,9 +341,7 @@ export function TransactionsScreen({
   // Agrupar por data
   const groupedTransactions = filteredTransactions.reduce((groups, transaction) => {
     const dateKey = transaction.date.toDateString();
-    if (!groups[dateKey]) {
-      groups[dateKey] = [];
-    }
+    if (!groups[dateKey]) groups[dateKey] = [];
     groups[dateKey].push(transaction);
     return groups;
   }, {} as Record<string, Transaction[]>);
@@ -231,22 +354,23 @@ export function TransactionsScreen({
 
     if (date.toDateString() === today.toDateString()) return 'Hoje';
     if (date.toDateString() === yesterday.toDateString()) return 'Ontem';
-    return date.toLocaleDateString('pt-BR', {
-      weekday: 'long',
-      day: '2-digit',
-      month: 'short',
-    });
+    return date.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'short' });
   };
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      {/* Header */}
-      <View style={styles.header}>
+      {/* Header Animado */}
+      <Animated.View
+        style={[
+          styles.header,
+          { opacity: headerOpacity, transform: [{ translateY: headerTranslate }] },
+        ]}
+      >
         <Text preset="h3" style={{ color: theme.colors.text }}>Transações</Text>
         <Text preset="caption" color={theme.colors.textSecondary}>
           {filteredTransactions.length} de {transactions.length}
         </Text>
-      </View>
+      </Animated.View>
 
       {/* Campo de Busca */}
       <View style={styles.searchContainer}>
@@ -268,8 +392,14 @@ export function TransactionsScreen({
         </View>
       </View>
 
-      {/* Resumo */}
-      <View style={[styles.summary, { backgroundColor: theme.colors.backgroundSecondary }]}>
+      {/* Resumo Animado */}
+      <Animated.View
+        style={[
+          styles.summary,
+          { backgroundColor: theme.colors.backgroundSecondary },
+          { opacity: summaryOpacity, transform: [{ scale: summaryScale }] },
+        ]}
+      >
         <View style={styles.summaryItem}>
           <Text preset="caption" color={theme.colors.textSecondary}>Receitas</Text>
           <Text preset="label" color={theme.colors.success}>
@@ -283,7 +413,7 @@ export function TransactionsScreen({
             -R$ {totalExpense.toFixed(2).replace('.', ',')}
           </Text>
         </View>
-      </View>
+      </Animated.View>
 
       {/* Filtro de Período */}
       <View style={styles.periodFilter}>
@@ -297,31 +427,34 @@ export function TransactionsScreen({
         </TouchableOpacity>
       </View>
 
-      {/* Filtros de Tipo */}
+      {/* Filtros de Tipo Animados */}
       <View style={styles.filters}>
-        <FilterChip
+        <AnimatedFilterChip
           label="Todas"
           isActive={filter === 'all'}
           onPress={() => setFilter('all')}
           activeColor={theme.colors.primary}
           inactiveColor={theme.colors.textSecondary}
           inactiveBg={theme.colors.backgroundTertiary}
+          delay={200}
         />
-        <FilterChip
+        <AnimatedFilterChip
           label="Despesas"
           isActive={filter === 'expense'}
           onPress={() => setFilter('expense')}
           activeColor={theme.colors.primary}
           inactiveColor={theme.colors.textSecondary}
           inactiveBg={theme.colors.backgroundTertiary}
+          delay={300}
         />
-        <FilterChip
+        <AnimatedFilterChip
           label="Receitas"
           isActive={filter === 'income'}
           onPress={() => setFilter('income')}
           activeColor={theme.colors.primary}
           inactiveColor={theme.colors.textSecondary}
           inactiveBg={theme.colors.backgroundTertiary}
+          delay={400}
         />
       </View>
 
@@ -332,72 +465,59 @@ export function TransactionsScreen({
         animationType="fade"
         onRequestClose={() => setShowPeriodPicker(false)}
       >
-        <Pressable style={styles.modalOverlay} onPress={() => setShowPeriodPicker(false)}>
-          <View style={[styles.periodModal, { backgroundColor: theme.colors.card }]}>
-            <View style={[styles.periodModalHeader, { borderBottomColor: theme.colors.border }]}>
-              <Text style={[styles.periodModalTitle, { color: theme.colors.text }]}>Selecionar Período</Text>
-              <TouchableOpacity onPress={() => setShowPeriodPicker(false)}>
-                <XIcon size={24} color={theme.colors.text} />
-              </TouchableOpacity>
-            </View>
-            {PERIOD_OPTIONS.map(option => (
-              <TouchableOpacity
-                key={option.value}
-                style={[
-                  styles.periodOption,
-                  period === option.value && { backgroundColor: theme.colors.primary + '15' }
-                ]}
-                onPress={() => {
-                  setPeriod(option.value);
-                  setShowPeriodPicker(false);
-                }}
-              >
-                <Text
-                  style={[
-                    styles.periodOptionText,
-                    { color: period === option.value ? theme.colors.primary : theme.colors.text }
-                  ]}
-                >
-                  {option.label}
-                </Text>
-                {period === option.value && (
-                  <View style={[styles.periodCheck, { backgroundColor: theme.colors.primary }]} />
-                )}
-              </TouchableOpacity>
-            ))}
+        <TouchableWithoutFeedback onPress={() => setShowPeriodPicker(false)}>
+          <View style={styles.modalOverlay}>
+            <TouchableWithoutFeedback>
+              <View style={[styles.periodModal, { backgroundColor: theme.colors.card }]}>
+                <View style={[styles.periodModalHeader, { borderBottomColor: theme.colors.border }]}>
+                  <Text style={[styles.periodModalTitle, { color: theme.colors.text }]}>Selecionar Período</Text>
+                  <TouchableOpacity onPress={() => setShowPeriodPicker(false)}>
+                    <XIcon size={24} color={theme.colors.text} />
+                  </TouchableOpacity>
+                </View>
+                {PERIOD_OPTIONS.map(option => (
+                  <TouchableOpacity
+                    key={option.value}
+                    style={[
+                      styles.periodOption,
+                      period === option.value && { backgroundColor: theme.colors.primary + '15' },
+                    ]}
+                    onPress={() => {
+                      setPeriod(option.value);
+                      setShowPeriodPicker(false);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.periodOptionText,
+                        { color: period === option.value ? theme.colors.primary : theme.colors.text },
+                      ]}
+                    >
+                      {option.label}
+                    </Text>
+                    {period === option.value && (
+                      <View style={[styles.periodCheck, { backgroundColor: theme.colors.primary }]} />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </TouchableWithoutFeedback>
           </View>
-        </Pressable>
+        </TouchableWithoutFeedback>
       </Modal>
 
-      {/* Lista */}
-      <ScrollView
-        style={styles.list}
-        showsVerticalScrollIndicator={false}
-      >
-        {Object.entries(groupedTransactions).map(([dateKey, items]) => (
-          <View key={dateKey} style={styles.group}>
-            <Text preset="label" color={theme.colors.textSecondary} style={styles.groupHeader}>
-              {formatGroupDate(dateKey)}
-            </Text>
-            <Card variant="elevated" padding="none" style={{ backgroundColor: theme.colors.card }}>
-              {items.map((transaction, index) => (
-                <React.Fragment key={transaction.id}>
-                  <TransactionItem
-                    transaction={transaction}
-                    onPress={() => onTransactionPress(transaction)}
-                    textColor={theme.colors.text}
-                    secondaryColor={theme.colors.textSecondary}
-                    pressedColor={theme.colors.backgroundTertiary}
-                    successColor={theme.colors.success}
-                    dangerColor={theme.colors.danger}
-                  />
-                  {index < items.length - 1 && (
-                    <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />
-                  )}
-                </React.Fragment>
-              ))}
-            </Card>
-          </View>
+      {/* Lista Animada */}
+      <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
+        {Object.entries(groupedTransactions).map(([dateKey, items], groupIndex) => (
+          <AnimatedTransactionGroup
+            key={dateKey}
+            dateKey={dateKey}
+            items={items}
+            formatGroupDate={formatGroupDate}
+            onTransactionPress={onTransactionPress}
+            theme={theme}
+            groupIndex={groupIndex}
+          />
         ))}
 
         {filteredTransactions.length === 0 && (
@@ -501,7 +621,6 @@ const styles = StyleSheet.create({
   spacer: {
     height: spacing[8],
   },
-  // Estilos do campo de busca
   searchContainer: {
     paddingHorizontal: spacing[4],
     paddingTop: spacing[2],
@@ -520,7 +639,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     paddingVertical: spacing[1],
   },
-  // Estilos do filtro de período
   periodFilter: {
     paddingHorizontal: spacing[4],
     paddingTop: spacing[3],
@@ -539,7 +657,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
   },
-  // Estilos do modal de período
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',

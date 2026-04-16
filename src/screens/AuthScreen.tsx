@@ -26,7 +26,11 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 type AuthMode = 'login' | 'register';
 
-export function AuthScreen() {
+interface AuthScreenProps {
+  onOfflineMode?: () => void;
+}
+
+export function AuthScreen({ onOfflineMode }: AuthScreenProps) {
   const { theme } = useTheme();
   const { signIn, signUp } = useAuth();
 
@@ -54,7 +58,18 @@ export function AuthScreen() {
       if (mode === 'login') {
         const { error } = await signIn(email, password);
         if (error) {
-          Alert.alert('Erro', error.message || 'Erro ao fazer login');
+          const msg = error.message || '';
+          if (msg.toLowerCase().includes('email not confirmed') || msg.toLowerCase().includes('not confirmed')) {
+            Alert.alert(
+              'Email não confirmado',
+              'Verifique sua caixa de entrada e clique no link de confirmação antes de fazer login.',
+              [{ text: 'OK' }]
+            );
+          } else if (msg.toLowerCase().includes('invalid login') || msg.toLowerCase().includes('invalid credentials')) {
+            Alert.alert('Erro', 'Email ou senha incorretos.');
+          } else {
+            Alert.alert('Erro', msg || 'Erro ao fazer login');
+          }
         }
       } else {
         const { error } = await signUp(email, password, name);
@@ -227,7 +242,7 @@ export function AuthScreen() {
         </View>
 
         {/* Modo offline */}
-        <TouchableOpacity style={styles.offlineButton}>
+        <TouchableOpacity style={styles.offlineButton} onPress={onOfflineMode}>
           <Text style={[styles.offlineText, { color: theme.colors.textTertiary }]}>
             Continuar sem conta (modo offline)
           </Text>
